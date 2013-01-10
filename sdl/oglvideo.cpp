@@ -271,7 +271,6 @@ void TextureUpdate(GLuint textureId, GLushort *srcPixels, int w, int h)
 //   glTexImage2D ( GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, (GLushort *)GUI.snes_buffer ); 
 }
 
-
 //
 // Initialize the shader and program object
 //
@@ -282,7 +281,7 @@ void OpenGL_ES_Init (GLfloat upScaleFactor)
     GUI.esContext.userData = &GUI.userData;
 
 	//TODO: neagix: use single-buffered EGL display surface
-    if (GL_FALSE == esCreateWindow ( &GUI.esContext, 640, 480, ES_WINDOW_RGB, upScaleFactor ))
+    if (GL_FALSE == esCreateWindow ( &GUI.esContext, SNES_WIDTH + 50, SNES_HEIGHT_EXTENDED + 50, ES_WINDOW_RGB, upScaleFactor ))
     {
 	   fprintf(stderr, "Cannot create window!\n");
 	   exit(-1);
@@ -386,8 +385,6 @@ void Draw ( ESContext *esContext )
    glUniform1i ( GUI.userData.samplerLoc, 0 );
 
    glDrawElements ( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
-   
-   printf("Draw() completed\n");
 }
 
 // modified by neagix to use OpenGL ES
