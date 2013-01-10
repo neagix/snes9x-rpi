@@ -3,9 +3,6 @@
 
   See CREDITS file to find the copyright owners of this file.
 
-  SDL Input/Audio/Video code (many lines of code come from snes9x & drnoksnes)
-  (c) Copyright 2011         Makoto Sugano (makoto.sugano@gmail.com)
-
   Snes9x homepage: http://www.snes9x.com/
 
   Permission to use, copy, modify and/or distribute Snes9x in both binary
@@ -50,7 +47,10 @@
 #include "blit.h"
 #include "display.h"
 
-#include "sdl_snes9x.h"
+//#include "sdl_snes9x.h"
+
+#include "port.h"
+#include "conffile.h"
 
 #include "../escommon/esUtil.h"
 
@@ -114,7 +114,7 @@ enum
 
 static void SetupImage (void);
 static void TakedownImage (void);
-static void Repaint (bool8);
+//static void Repaint (void);
 
 void S9xExtraDisplayUsage (void)
 {
@@ -190,61 +190,104 @@ static void FatalError (const char *str)
 	fprintf(stderr, "%s\n", str);
 	S9xExit();
 }
-
-//
-// Create a simple 2d texture
-// we will later upload the pixels color data into it
-//
-GLuint Create2DTexture( )
-{
-   // Texture object handle
-   GLuint textureId;
-   
-   // Use tightly packed data
-   glPixelStorei ( GL_UNPACK_ALIGNMENT, 1 );
-
-   // Generate a texture object
-   glGenTextures ( 1, &textureId );
-
-   // Bind the texture object
-   glBindTexture ( GL_TEXTURE_2D, textureId );
-   
-   // Set the filtering mode
-   glTexParameteri ( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-   glTexParameteri ( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-   
-
-   return textureId;   
-}
-
-//neagix: logic is OK
-//TODO: neagix: use eglCreatePbufferSurface (if not using single-buffered display approach)
-void BufferToTexture(GLuint textureId, GLushort *pixels, int w, int h)
-{
-      // Bind the texture object
-   glBindTexture ( GL_TEXTURE_2D, textureId );
-
    // 2x2 Image, 3 bytes per pixel (R, G, B)
-/*   GLubyte pixels[4 * 3] =
+   GLubyte testPixels[4 * 3] =
    {  
       255,   0,   0, // Red
         0, 255,   0, // Green
         0,   0, 255, // Blue
       255, 255,   0  // Yellow
-   };   */
+   };
+
+//
+// Create a simple 2d texture
+// we will later upload the pixels color data into it
+//
+GLuint Create2DTexture()
+{
+   // Texture object handle
+   GLuint textureId;
+   
+   // Generate a texture object
+   glGenTextures ( 1, &textureId );
+
+   // Use tightly packed data
+   glPixelStorei ( GL_UNPACK_ALIGNMENT, 2 );
+
+   // Bind the texture object
+   glBindTexture ( GL_TEXTURE_2D, textureId );
+   
+	//TODO: neagix: minor optimization: use normal, not 2x scaled, buffer (when it is possible)
+	int w = SNES_WIDTH;
+	int h = (SNES_HEIGHT_EXTENDED + 4);
+	
+	printf("Creating texture with size %dx%d\n", w, h);
+   
+/*	srand (time(0));
+
+   // we will initialize with random noise, for fun
+   for(int i = 0;i < w*h; i++) {
+//	   GLushort my_rand = (GLushort)rand();
+		GLushort my_rand = 0xAAF0F;
+	   
+	   ((GLushort *)GUI.snes_buffer)[i] = my_rand;
+   } */
 
    // Load the texture
-   glTexImage2D ( GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, pixels );
+   glTexImage2D ( GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, (GLushort *)GUI.snes_buffer );
+   
+   // Set the filtering mode
+   glTexParameteri ( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+   glTexParameteri ( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );   
+
+
+   return textureId;   
+}
+
+void DrawTest(GLuint textureId)
+{
+   // Bind the texture object
+   glBindTexture ( GL_TEXTURE_2D, textureId );
+
+   // Use tightly packed data
+   glPixelStorei ( GL_UNPACK_ALIGNMENT, 1 );   
+
+   // Load the texture
+   glTexImage2D ( GL_TEXTURE_2D, 0, GL_RGB, 2, 2, 0, GL_RGB, GL_UNSIGNED_BYTE, testPixels );
+
+   // Set the filtering mode
+   glTexParameteri ( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+   glTexParameteri ( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );   
+}
+
+//TODO: neagix: use eglCreatePbufferSurface (if not using single-buffered display approach)
+void TextureUpdate(GLuint textureId, GLushort *srcPixels, int w, int h)
+{
+   // Bind the texture object
+   glBindTexture ( GL_TEXTURE_2D, textureId );
+   
+   // Load the texture
+   glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, srcPixels);
+//   glTexImage2D ( GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, (GLushort *)GUI.snes_buffer ); 
 }
 
 
 //
 // Initialize the shader and program object
 //
-int Init ( ESContext *esContext )
+void OpenGL_ES_Init ()
 {
-   esContext->userData = malloc(sizeof(UserData));	
-   UserData *userData = (UserData *)esContext->userData;
+	// initialize OpenGL ES
+    esInitContext ( &GUI.esContext );
+    GUI.esContext.userData = &GUI.userData;
+
+	//TODO: neagix: use single-buffered EGL display surface
+    if (GL_FALSE == esCreateWindow ( &GUI.esContext, 640, 480, ES_WINDOW_RGB ))
+    {
+	   fprintf(stderr, "Cannot create window!\n");
+	   exit(-1);
+    }
+	
    GLbyte vShaderStr[] =  
       "attribute vec4 a_position;   \n"
       "attribute vec2 a_texCoord;   \n"
@@ -265,21 +308,34 @@ int Init ( ESContext *esContext )
       "}                                                   \n";
 
    // Load the shaders and get a linked program object
-   userData->programObject = esLoadProgram ( (const char *)vShaderStr, (const char *)fShaderStr );
+   GUI.userData.programObject = esLoadProgram ( (const char *)vShaderStr, (const char *)fShaderStr );
 
    // Get the attribute locations
-   userData->positionLoc = glGetAttribLocation ( userData->programObject, "a_position" );
-   userData->texCoordLoc = glGetAttribLocation ( userData->programObject, "a_texCoord" );
+   GUI.userData.positionLoc = glGetAttribLocation ( GUI.userData.programObject, "a_position" );
+   GUI.userData.texCoordLoc = glGetAttribLocation ( GUI.userData.programObject, "a_texCoord" );
    
    // Get the sampler location
-   userData->samplerLoc = glGetUniformLocation ( userData->programObject, "s_texture" );
+   GUI.userData.samplerLoc = glGetUniformLocation ( GUI.userData.programObject, "s_texture" );
 
    // create a blank textgure
-   userData->textureId = Create2DTexture();
+   GUI.userData.textureId = Create2DTexture();
 
-   glClearColor ( 0.0f, 0.0f, 0.0f, 1.0f );
-   return GL_TRUE;
+	// neagix: when debugging, we set background color to white to contrast with VT background color
+   glClearColor ( 1.0f, 1.0f, 1.0f, 1.0f );
 }
+
+//
+// Cleanup
+//
+void OpenGL_ES_ShutDown ()
+{
+   // Delete texture object
+   glDeleteTextures ( 1, &GUI.userData.textureId );
+
+   // Delete program object
+   glDeleteProgram ( GUI.userData.programObject );
+}
+
 
 GLushort indices[] = { 0, 1, 2, 0, 2, 3 };
 
@@ -287,24 +343,22 @@ GLushort indices[] = { 0, 1, 2, 0, 2, 3 };
 // Draw a triangle using the shader pair created in Init()
 //
 void Draw ( ESContext *esContext )
-{
-   UserData *userData = (UserData *)esContext->userData;
-   
+{   
    float x1 = -0.5, y1 = 0.5;
    float x2 = 0.5, y2 = -0.5;
    
    GLfloat vVertices[] = { x1,  y1, 0.0f,  // Position 0
                             0.0f,  0.0f,        // TexCoord 0 
-                           x1, y2*2, 0.0f,  // Position 1
+                           x1, y2, 0.0f,  // Position 1
                             0.0f,  1.0f,        // TexCoord 1
-                            x2*2, y2*2, 0.0f,  // Position 2
+                           x2, y2, 0.0f,  // Position 2
                             1.0f,  1.0f,        // TexCoord 2
-                            x2*2,  y1, 0.0f,  // Position 3
+                           x2,  y1, 0.0f,  // Position 3
                             1.0f,  0.0f         // TexCoord 3
                          };
    
-   //TODO: neagix: check if these statements are necessary to reiterate for each frame (most probably not)
-         
+   //TODO: neagix: check if these statements are necessary to be reiterated for each frame (most probably not)
+
    // Set the viewport
    glViewport ( 0, 0, esContext->width, esContext->height );
    
@@ -312,68 +366,33 @@ void Draw ( ESContext *esContext )
    glClear ( GL_COLOR_BUFFER_BIT );
 
    // Use the program object
-   glUseProgram ( userData->programObject );
+   glUseProgram ( GUI.userData.programObject );
 
    // Load the vertex position
-   glVertexAttribPointer ( userData->positionLoc, 3, GL_FLOAT, 
+   glVertexAttribPointer ( GUI.userData.positionLoc, 3, GL_FLOAT, 
                            GL_FALSE, 5 * sizeof(GLfloat), vVertices );
    // Load the texture coordinate
-   glVertexAttribPointer ( userData->texCoordLoc, 2, GL_FLOAT,
+   glVertexAttribPointer ( GUI.userData.texCoordLoc, 2, GL_FLOAT,
                            GL_FALSE, 5 * sizeof(GLfloat), &vVertices[3] );
 
-   glEnableVertexAttribArray ( userData->positionLoc );
-   glEnableVertexAttribArray ( userData->texCoordLoc );
+   glEnableVertexAttribArray ( GUI.userData.positionLoc );
+   glEnableVertexAttribArray ( GUI.userData.texCoordLoc );
 
    // Bind the texture
    glActiveTexture ( GL_TEXTURE0 );
-   glBindTexture ( GL_TEXTURE_2D, userData->textureId );
+   glBindTexture ( GL_TEXTURE_2D, GUI.userData.textureId );
 
    // Set the sampler texture unit to 0
-   glUniform1i ( userData->samplerLoc, 0 );
+   glUniform1i ( GUI.userData.samplerLoc, 0 );
 
    glDrawElements ( GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices );
-}
-
-///
-// Cleanup
-//
-void OGLShutDown ( ESContext *esContext )
-{
-	UserData *userData = (UserData *)esContext->userData;
-   // Delete texture object
-   glDeleteTextures ( 1, &userData->textureId );
-
-   // Delete program object
-   glDeleteProgram ( userData->programObject );
-	
-   free(esContext->userData);
-}
-
-// initialize OpenGL ES
-void init_ogl()
-{
-   esInitContext ( &GUI.esContext );
-   GUI.esContext.userData = &GUI.userData;
-
-	//TODO: neagix: use single-buffered EGL display surface
-   esCreateWindow ( &GUI.esContext, "snes9x-rpi OpenGL ES", 640, 480, ES_WINDOW_RGB );
-
-   if ( !Init ( &GUI.esContext ) ) {
-		fprintf(stderr, "Could not initialize OpenGL ES window\n");
-	   exit(-1);
-  }
-
-	// neagix: we do not use these
-//   esRegisterDrawFunc ( &esContext, Draw );
-
-//   esMainLoop ( &esContext );    
+   
+   printf("Draw() completed\n");
 }
 
 // modified by neagix to use OpenGL ES
 void S9xInitDisplay (int argc, char **argv)
-{  
-	atexit(SDL_Quit);
-	
+{
 	/*
 	 * domaemon
 	 *
@@ -389,27 +408,22 @@ void S9xInitDisplay (int argc, char **argv)
 	S9xBlitFilterInit();
 	S9xBlit2xSaIFilterInit();
 	S9xBlitHQ2xFilterInit();
-
-	init_ogl();
-	
-//    printf("test exit");
-    
-//    exit(0);
-	
+		
 	/*
 	 * domaemon
 	 *
 	 * buffer allocation, quite important
 	 */
 	SetupImage();
+	
+    OpenGL_ES_Init();	
 }
 
 void S9xDeinitDisplay (void)
 {
 	TakedownImage();
 
-	OGLShutDown(&GUI.esContext);
-	SDL_Quit();
+	OpenGL_ES_ShutDown();
 
 	S9xBlitFilterDeinit();
 	S9xBlit2xSaIFilterDeinit();
@@ -449,13 +463,13 @@ static void SetupImage (void)
 	S9xGraphicsInit();
 }
 
-void S9xPutImage (int width, int height)
+/*void S9xPutImage (int width, int height)
 {
 	
 	// only simple direct rendering is currently supported, thus blitting part is commented out
 	
 	static int	prevWidth = 0, prevHeight = 0;
-/*	int			copyWidth, copyHeight;
+	int			copyWidth, copyHeight;
 	Blitter		blitFn = NULL;
 
 	if (GUI.video_mode == VIDEOMODE_BLOCKY || GUI.video_mode == VIDEOMODE_TV || GUI.video_mode == VIDEOMODE_SMOOTH)
@@ -520,27 +534,31 @@ void S9xPutImage (int width, int height)
 			for (int x = 0; x < p; x++)
 				*d++ = 0;
 		}
-	} */
+	} 
 
 	Repaint(TRUE);
 
 	prevWidth  = width;
 	prevHeight = height;
-}
+} */
 
-static void Repaint (bool8 isFrameBoundry)
+//static int framesRendered = 0;
+
+// neagix: we force a double-buffer swap only on frame boundary (that is always, in this case)
+void S9xPutImage(int w, int h)
 {
-//        SDL_Flip(GUI.sdl_screen);
-
-	// neagix: we force a double-buffer swap only on frame boundary (that is always, in this case)
-	if (isFrameBoundry) {
-
-		//TODO: neagix: minor optimization: use normal, not 2x scaled, buffer (when it is possible)
-		BufferToTexture(GUI.userData.textureId, (GLushort *)GUI.snes_buffer, GFX.Pitch, (SNES_HEIGHT_EXTENDED + 4) * 2);
-		
-		eglSwapBuffers(GUI.esContext.eglDisplay, GUI.esContext.eglSurface);	
+//	framesRendered++;
+//	if (framesRendered == 200)
+//		exit(0);
 	
-	}
+//	printf("painting frame #%d (area is %dx%d)\n", framesRendered, w, h);
+	
+	// neagix: we will update only the necessary area
+	TextureUpdate(GUI.userData.textureId, (GLushort *)GUI.snes_buffer, w, h);
+	
+	Draw(&GUI.esContext);
+	
+	eglSwapBuffers(GUI.esContext.eglDisplay, GUI.esContext.eglSurface);	
 }
 
 void S9xMessage (int type, int number, const char *message)
