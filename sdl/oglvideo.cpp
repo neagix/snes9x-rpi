@@ -275,14 +275,14 @@ void TextureUpdate(GLuint textureId, GLushort *srcPixels, int w, int h)
 //
 // Initialize the shader and program object
 //
-void OpenGL_ES_Init ()
+void OpenGL_ES_Init (GLfloat upScaleFactor)
 {
 	// initialize OpenGL ES
     esInitContext ( &GUI.esContext );
     GUI.esContext.userData = &GUI.userData;
 
 	//TODO: neagix: use single-buffered EGL display surface
-    if (GL_FALSE == esCreateWindow ( &GUI.esContext, 640, 480, ES_WINDOW_RGB ))
+    if (GL_FALSE == esCreateWindow ( &GUI.esContext, 640, 480, ES_WINDOW_RGB, upScaleFactor ))
     {
 	   fprintf(stderr, "Cannot create window!\n");
 	   exit(-1);
@@ -416,7 +416,8 @@ void S9xInitDisplay (int argc, char **argv)
 	 */
 	SetupImage();
 	
-    OpenGL_ES_Init();	
+	// initialize, fullscreen up-scaled
+    OpenGL_ES_Init(1.0f);
 }
 
 void S9xDeinitDisplay (void)
