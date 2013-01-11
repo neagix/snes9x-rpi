@@ -55,10 +55,10 @@ snes9x-sdl: $(OBJECTS)
 	$(CCC) $(INCLUDES) -o $@ $(OBJECTS) -L/opt/vc/lib -lm -lGLESv2 -lEGL @S9XLIBS@
 
 escommon:
-	$(CCC) ../escommon/esShader.c -c -o ../escommon/esShader.o -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads -fpermissive
-	$(CCC) ../escommon/esTransform.c -c -o ../escommon/esTransform.o -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads -fpermissive
-	$(CCC) ../escommon/esShapes.c -c -o ../escommon/esShapes.o -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads -fpermissive
-	$(CCC) ../escommon/esUtil.c -c -o ../escommon/esUtil.o -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads -fpermissive
+	$(CCC) ../escommon/esShader.c -c -o ../escommon/esShader.o -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads -DRPI_NO_X  -fpermissive
+	$(CCC) ../escommon/esTransform.c -c -o ../escommon/esTransform.o -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads -DRPI_NO_X  -fpermissive
+	$(CCC) ../escommon/esShapes.c -c -o ../escommon/esShapes.o -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads -DRPI_NO_X -fpermissive
+	$(CCC) ../escommon/esUtil.c -c -o ../escommon/esUtil.o -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads -DRPI_NO_X -fpermissive
 
 ../jma/s9x-jma.o: ../jma/s9x-jma.cpp
 	$(CCC) $(INCLUDES) -c $(CCFLAGS) -fexceptions $*.cpp -o $@

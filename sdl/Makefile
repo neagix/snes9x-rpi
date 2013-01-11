@@ -31,7 +31,7 @@ CC         = gcc
 GASM       = g++
 INCLUDES   = -I. -I.. -I../apu/ -I../apu/bapu -I../unzip/ -I../jma/ -I../filter/ -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads
 
-CCFLAGS    = -O3 -fomit-frame-pointer -fno-exceptions -fno-rtti -Wall -W -Wno-comment -Wno-variadic-macros -Wno-unused-parameter -I/usr/include/SDL -D_GNU_SOURCE=1 -D_REENTRANT -DZLIB -DUNZIP_SUPPORT -DJMA_SUPPORT -DHAVE_LIBPNG -DHAVE_MKSTEMP -DHAVE_STRINGS_H -DHAVE_SYS_IOCTL_H -DHAVE_STDINT_H -DRIGHTSHIFT_IS_SAR $(DEFS)
+CCFLAGS    = -O3 -fomit-frame-pointer -fno-exceptions -fno-rtti -Wall -W -Wno-comment -Wno-variadic-macros -Wno-unused-parameter -I/usr/include/SDL -DRPI_NO_X -D_GNU_SOURCE=1 -D_REENTRANT -DZLIB -DUNZIP_SUPPORT -DJMA_SUPPORT -DHAVE_LIBPNG -DHAVE_MKSTEMP -DHAVE_STRINGS_H -DHAVE_SYS_IOCTL_H -DHAVE_STDINT_H -DRIGHTSHIFT_IS_SAR $(DEFS)
 CFLAGS     = $(CCFLAGS)
 
 COMMONSRC=../escommon/esShader.c    \
@@ -51,10 +51,10 @@ configure: configure.ac
 	exit 1
 	
 escommon:
-	$(CCC) ../escommon/esShader.c -c -o ../escommon/esShader.o -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads -fpermissive
-	$(CCC) ../escommon/esTransform.c -c -o ../escommon/esTransform.o -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads -fpermissive
-	$(CCC) ../escommon/esShapes.c -c -o ../escommon/esShapes.o -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads -fpermissive
-	$(CCC) ../escommon/esUtil.c -c -o ../escommon/esUtil.o -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads -fpermissive
+	$(CCC) -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads ../escommon/esShader.c -c -o ../escommon/esShader.o -DRPI_NO_X  -fpermissive
+	$(CCC) -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads ../escommon/esTransform.c -c -o ../escommon/esTransform.o -DRPI_NO_X  -fpermissive
+	$(CCC) -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads ../escommon/esShapes.c -c -o ../escommon/esShapes.o -DRPI_NO_X -fpermissive
+	$(CCC) -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads ../escommon/esUtil.c -c -o ../escommon/esUtil.o -DRPI_NO_X -fpermissive
 
 snes9x-sdl: $(OBJECTS)
 	$(CCC) $(INCLUDES) -o $@ $(OBJECTS) -L/opt/vc/lib -lm -lGLESv2 -lEGL -lz -lpng -L/usr/lib/arm-linux-gnueabihf -lSDL
