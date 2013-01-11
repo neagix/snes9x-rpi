@@ -414,7 +414,7 @@ void S9xInitDisplay (int argc, char **argv)
 	SetupImage();
 	
 	// initialize, fullscreen up-scaled
-    OpenGL_ES_Init(1.0f);
+    OpenGL_ES_Init(.95f);
 }
 
 void S9xDeinitDisplay (void)
