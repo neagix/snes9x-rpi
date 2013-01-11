@@ -795,7 +795,7 @@ int main (int argc, char **argv)
 	if (argc < 2)
 		S9xUsage();
 
-	printf("\n\nSnes9x " VERSION " for unix/SDL\n");
+	printf("\n\nSnes9x-rpi " VERSION " for unix/OpenGLES\n");
 
 	snprintf(default_dir, PATH_MAX + 1, "%s%s%s", getenv("HOME"), SLASH_STR, ".snes9x");
 	s9x_base_dir = default_dir;

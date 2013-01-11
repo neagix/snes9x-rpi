@@ -217,9 +217,9 @@ GLuint Create2DTexture()
    // Bind the texture object
    glBindTexture ( GL_TEXTURE_2D, textureId );
    
-	//TODO: neagix: minor optimization: use normal, not 2x scaled, buffer (when it is possible)
+	//TODO: neagix: minor optimization: we will not use double width, only double height (for scanlines of interleaving)
 	int w = SNES_WIDTH;
-	int h = (SNES_HEIGHT_EXTENDED + 4);
+	int h = SNES_HEIGHT_EXTENDED;
 	
 	printf("Creating texture with size %dx%d\n", w, h);
    
@@ -234,7 +234,7 @@ GLuint Create2DTexture()
    } */
 
    // Load the texture
-   glTexImage2D ( GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, (GLushort *)GUI.snes_buffer );
+   glTexImage2D ( GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, /*(GLushort *)GUI.snes_buffer*/ NULL );
    
    // Set the filtering mode
    glTexParameteri ( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
@@ -281,7 +281,7 @@ void OpenGL_ES_Init (GLfloat upScaleFactor)
     GUI.esContext.userData = &GUI.userData;
 
 	//TODO: neagix: use single-buffered EGL display surface
-    if (GL_FALSE == esCreateWindow ( &GUI.esContext, SNES_WIDTH + 50, SNES_HEIGHT_EXTENDED + 50, ES_WINDOW_RGB, upScaleFactor ))
+    if (GL_FALSE == esCreateWindow ( &GUI.esContext, SNES_WIDTH, SNES_HEIGHT_EXTENDED, ES_WINDOW_RGB, upScaleFactor ))
     {
 	   fprintf(stderr, "Cannot create window!\n");
 	   exit(-1);
@@ -320,7 +320,7 @@ void OpenGL_ES_Init (GLfloat upScaleFactor)
    GUI.userData.textureId = Create2DTexture();
 
 	// neagix: when debugging, we set background color to white to contrast with VT background color
-   glClearColor ( 1.0f, 1.0f, 1.0f, 1.0f );
+   glClearColor ( .0f, 1.0f, .0f, 1.0f );
 }
 
 //
@@ -343,8 +343,8 @@ GLushort indices[] = { 0, 1, 2, 0, 2, 3 };
 //
 void Draw ( ESContext *esContext )
 {   
-   float x1 = -0.5, y1 = 0.5;
-   float x2 = 0.5, y2 = -0.5;
+   float x1 = -1, y1 = 1;
+   float x2 = 1, y2 = -1;
    
    GLfloat vVertices[] = { x1,  y1, 0.0f,  // Position 0
                             0.0f,  0.0f,        // TexCoord 0 
@@ -447,14 +447,14 @@ static void SetupImage (void)
 	// This way the code can handle the SNES filters, which does the 2X.
 	
 	// neagix: interpreting what is written above, this means we are allocating 2x memory buffer. it's ok
-	GFX.Pitch = SNES_WIDTH * 2 * 2; // 2x for 16bit color, 2x to support 2x scaling
-	GUI.snes_buffer = (uint8 *) calloc(GFX.Pitch * ((SNES_HEIGHT_EXTENDED + 4) * 2), 1);
+	GFX.Pitch = SNES_WIDTH * 2; // 2x for 16bit color, 2x to support 2x scaling
+	GUI.snes_buffer = (uint8 *) calloc(GFX.Pitch * (SNES_HEIGHT_EXTENDED + 4), 1);
 	if (!GUI.snes_buffer)
 		FatalError("Failed to allocate GUI.snes_buffer.");
 
 	// domaemon: Add 2 lines before drawing.
 	// neagix: why such 2 lines offset? never-checked canaries?
-	GFX.Screen = (uint16 *) (GUI.snes_buffer + (GFX.Pitch * 2 * 2));
+	GFX.Screen = (uint16 *) (GUI.snes_buffer + (GFX.Pitch * 2));
 	
 	// neagix: we will dump directly the SNES buffer to the rendered texture
 
@@ -540,17 +540,9 @@ static void SetupImage (void)
 	prevHeight = height;
 } */
 
-//static int framesRendered = 0;
-
 // neagix: we force a double-buffer swap only on frame boundary (that is always, in this case)
 void S9xPutImage(int w, int h)
 {
-//	framesRendered++;
-//	if (framesRendered == 200)
-//		exit(0);
-	
-//	printf("painting frame #%d (area is %dx%d)\n", framesRendered, w, h);
-	
 	// neagix: we will update only the necessary area
 	TextureUpdate(GUI.userData.textureId, (GLushort *)GUI.snes_buffer, w, h);
 	

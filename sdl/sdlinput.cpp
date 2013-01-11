@@ -312,8 +312,14 @@ void S9xInitInputDevices (void)
 	else
 	{
 		SDL_JoystickEventState (SDL_ENABLE);
-
-		// domaemon: FIXME should check if num_joysticks is below 4..
+		
+		// only consider first 4 joysticks available
+		if (num_joysticks > 4)
+		{
+			fprintf(stderr, "joystick: You have %d joysticks, but only first 4 will be used.\n", num_joysticks);
+			num_joysticks = 4;
+		}
+		
 		for (int i = 0; i < num_joysticks; i++)
 		{
 			joystick[i] = SDL_JoystickOpen (i);
@@ -352,6 +358,7 @@ void S9xProcessEvents (bool8 block)
 
 /***** Joystick starts *****/
 #if 0
+//neagix: RFC, why disabled?
 		case SDL_JOYBUTTONDOWN:
 		case SDL_JOYBUTTONUP:
 			S9xReportButton(0x80000000 | // joystick button
@@ -403,166 +410,3 @@ void S9xHandlePortCommand (s9xcommand_t cmd, int16 data1, int16 data2)
 {
 	return;
 }
-
-
-#if 0
-
-main()
-{
-	int i;
-	SDL_Joystick * joysticks[4] = {NULL, NULL, NULL, NULL};
-	SDL_Event event;
-	SDL_Surface *screen;
-
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) != 0)
-	{
-		printf("Unable to initialize SDL: %s\n", SDL_GetError());
-	}
-  
-	atexit(SDL_Quit);
-
-	screen = SDL_SetVideoMode(64, 64, 16, 0);
-
-	for (i = 0; i < SDL_NumJoysticks(); i++)
-	{
-		printf ("  %s\n", SDL_JoystickName(i));
-		joysticks[i] = SDL_JoystickOpen (i);
-	}
-
-	SDL_JoystickEventState (SDL_ENABLE);
-
-	while (SDL_WaitEvent (&event) != 0) 
-	{
-		switch (event.type) {
-		case SDL_KEYDOWN:
-			printf ("KEYDOWN\n");
-			break;
-		case SDL_JOYAXISMOTION:
-			printf ("JOYAXISMOTION\n");
-			break;
-		case SDL_JOYBUTTONDOWN:
-			printf ("JOYBUTTONDOWN\n");
-			printf ("%d \n", event.jbutton.button);
-			break;
-		case SDL_JOYHATMOTION:
-			switch (event.jhat.value) {
-			case SDL_HAT_UP:
-				printf ("SDL_HAT_UP\n");
-				break;
-			case SDL_HAT_DOWN:
-				printf ("SDL_HAT_DOWN\n");
-				break;
-			case SDL_HAT_LEFT:
-				printf ("SDL_HAT_LEFT\n");
-				break;
-			case SDL_HAT_RIGHT:
-				printf ("SDL_HAT_RIGHT\n");
-				break;
-			}
-
-			printf ("JOYHATMOTION\n");
-			break;
-		case SDL_QUIT:
-			// domaemon: we come here when the window is getting closed.
-			SDL_Quit();
-		}
-	}
-}
-	
-// domaemon: 2) here we send the keymapping request to the SNES9X
-bool8 S9xMapDisplayInput (const char *n, s9xcommand_t *cmd)
-{
-	int	i, d;
-
-	if (!isdigit(n[1]) || !isdigit(n[2]) || n[3] != ':')
-		goto unrecog;
-
-	d = ((n[1] - '0') * 10 + (n[2] - '0')) << 24;
-
-	switch (n[0])
-	{
-		case 'K':
-		{
-			int key;
-
-			d |= 0x00000000;
-
-			for (i = 4; n[i] != '\0' && n[i] != '+'; i++) ;
-
-			if (n[i] == '\0' || i == 4) // domaemon: no mod keys.
-				i = 4;
-
-#if 0 // domaemon: mod keys not working properly.
-                        else // domaemon: with mod keys
-                        {
-                                for (i = 4; n[i] != '+'; i++)
-                                {
-                                        switch (n[i])
-                                        {
-                                                case 'S': d |= KMOD_SHIFT  << 16; break;
-                                                case 'C': d |= KMOD_CTRL   << 16; break;
-                                                case 'A': d |= KMOD_ALT    << 16; break;
-                                                case 'M': d |= KMOD_META   << 16; break;
-                                                default:  goto unrecog;
-                                        }
-                                }
-                                i++;
-                        }
-#endif
-
-			string keyname (n + i); // domaemon: SDL_keysym in string format.
-			key = name_sdlkeysym[keyname];
-
-			d |= key;
-			return (S9xMapButton(d, *cmd, false));
-
-		}
-
-		case 'M':
-		{
-			char	*c;
-			int		j;
-
-			d |= 0x40000000;
-
-			if (!strncmp(n + 4, "Pointer", 7))
-			{
-				d |= 0x8000;
-
-				if (n[11] == '\0')
-					return (S9xMapPointer(d, *cmd, true));
-
-				i = 11;
-			}
-			else
-			if (n[4] == 'B')
-				i = 5;
-			else
-				goto unrecog;
-
-			d |= j = strtol(n + i, &c, 10);
-
-			if ((c != NULL && *c != '\0') || j > 0x7fff)
-				goto unrecog;
-
-			if (d & 0x8000)
-				return (S9xMapPointer(d, *cmd, true));
-
-			return (S9xMapButton(d, *cmd, false));
-		}
-
-		default:
-			break;
-	}
-
-unrecog:
-	char	*err = new char[strlen(n) + 34];
-
-	sprintf(err, "Unrecognized input device name '%s'", n);
-	perror(err);
-	delete [] err;
-
-	return (false);
-}
-
-#endif
