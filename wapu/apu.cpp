@@ -1218,3 +1218,56 @@ uint8 S9xGetAPUDSP ()
     }
     return (byte);
 }
+
+void S9xAPUSetReferenceTime (int32 cpucycles)
+{
+//	spc::reference_time = cpucycles;
+}
+
+void S9xAPUExecute (void)
+{
+/*	SNES::smp.clock -= S9xAPUGetClock (CPU.Cycles);
+	SNES::smp.enter ();
+
+	spc::remainder = S9xAPUGetClockRemainder(CPU.Cycles); */
+    
+        if(CPU.APU_Cycles <= CPU.Cycles) {
+                int cycles = CPU.Cycles - CPU.APU_Cycles;
+		CPU.APU_Cycles += cycles - spc700_execute(cycles);
+	}    
+
+	S9xAPUSetReferenceTime(CPU.Cycles);
+}
+
+bool8 S9xSyncSound (void)
+{
+/*	if (!Settings.SoundSync || spc::sound_in_sync)
+		return (TRUE);
+
+	S9xLandSamples();
+
+	return (spc::sound_in_sync); */
+}
+
+void S9xAPUEndScanline (void)
+{
+	S9xAPUExecute();
+/*	SNES::dsp.synchronize();
+
+	if (SNES::dsp.spc_dsp.sample_count() >= APU_MINIMUM_SAMPLE_BLOCK || !spc::sound_in_sync) */
+//		S9xLandSamples();
+}
+
+void S9xAPUTimingSetSpeedup (int ticks)
+{
+	if (ticks != 0)
+		printf("APU speedup hack: %d\n", ticks);
+
+/*	spc::timing_hack_denominator = 256 - ticks;
+
+	spc::ratio_numerator = Settings.PAL ? APU_NUMERATOR_PAL : APU_NUMERATOR_NTSC;
+	spc::ratio_denominator = Settings.PAL ? APU_DENOMINATOR_PAL : APU_DENOMINATOR_NTSC;
+	spc::ratio_denominator = spc::ratio_denominator * spc::timing_hack_denominator / spc::timing_hack_numerator;
+
+	UpdatePlaybackRate(); */
+}

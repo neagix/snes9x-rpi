@@ -1389,7 +1389,14 @@ void S9xSetPlaybackRate (uint32 playback_rate)
 	S9xSetSoundFrequency (i, SoundData.channels [i].hertz);
 }
 
-bool8 S9xInitSound (int mode, bool8 stereo, int buffer_size)
+void S9xSetSoundMute (bool8 mute)
+{
+    //bool8 old = so.mute_sound;
+    so.mute_sound = mute;
+    //return (old);
+}
+
+bool8 S9xInitSound (bool8 stereo, int buffer_size)
 {
     so.sound_fd = -1;
     so.sound_switch = 255;
@@ -1402,8 +1409,8 @@ bool8 S9xInitSound (int mode, bool8 stereo, int buffer_size)
     
     S9xResetSound (TRUE);
 
-    if (!(mode & 7))
-	return (1);
+//    if (!(mode & 7))
+//	return (1);
 
     S9xSetSoundMute (TRUE);
     if (!S9xOpenSoundDevice (mode, stereo, buffer_size))

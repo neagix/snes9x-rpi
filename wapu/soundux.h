@@ -59,7 +59,7 @@ enum { MODE_NONE = SOUND_SILENT, MODE_ADSR, MODE_RELEASE = SOUND_RELEASE,
 #define SOUND_DECODE_LENGTH 16
 
 #define NUM_CHANNELS    8
-#define SOUND_BUFFER_SIZE (1024 * 1)
+#define SOUND_BUFFER_SIZE (1024 * 16)
 #define MAX_BUFFER_SIZE SOUND_BUFFER_SIZE
 #define SOUND_BUFFER_SIZE_MASK (SOUND_BUFFER_SIZE - 1)
 
@@ -217,12 +217,7 @@ else \
 if ((v) > 127) \
     (v) = 127
 
-static inline void S9xSetSoundMute (bool8 mute)
-{
-    //bool8 old = so.mute_sound;
-    so.mute_sound = mute;
-    //return (old);
-}
+void S9xSetSoundMute (bool8 mute);
 
 static inline void S9xSetEnvRate (Channel *ch, unsigned long rate, int direction, int target, unsigned int mode)
 {

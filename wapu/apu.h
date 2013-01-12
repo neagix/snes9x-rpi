@@ -133,7 +133,12 @@ extern "C" {
 	bool8 S9xInitAPU ();
 	void S9xDeinitAPU ();
 	uint8 S9xAPUReadPort (int);
-	void S9xAPUWritePort (int, uint8);	
+	void S9xAPUWritePort (int, uint8);
+        void S9xAPUExecute (void);
+        void S9xAPUEndScanline (void);
+        void S9xAPUTimingSetSpeedup (int ticks);
+        void S9xAPUSetReferenceTime (int32 cpucycles);
+        bool8 S9xSyncSound (void);
 	void S9xDecacheSamples ();
 	int S9xTraceAPU ();
 	int S9xAPUOPrint (char *buffer, uint16 Address);
@@ -141,7 +146,7 @@ extern "C" {
 	void S9xSetAPUDSP (uint8 byte);
 	uint8 S9xGetAPUDSP ();
 	void S9xSetAPUTimer (uint16 Address, uint8 byte);
-	bool8 S9xInitSound (int quality, bool8 stereo, int buffer_size);
+	bool8 S9xInitSound (bool8 stereo, int buffer_size);
 	void S9xOpenCloseSoundTracingFile (bool8);
 	void S9xPrintAPUState ();
 	extern int32 S9xAPUCycles [256];	// Scaled cycle lengths

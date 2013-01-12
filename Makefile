@@ -7,7 +7,9 @@ S9XJMA=1
 OS         = `uname -s -r -m|sed \"s/ /-/g\"|tr \"[A-Z]\" \"[a-z]\"|tr \"/()\" \"___\"`
 BUILDDIR   = .
 
-OBJECTS    = wapu/apu.o wapu/spc700/spc700a.o bsx.o c4.o c4emu.o cheats.o cheats2.o clip.o conffile.o controls.o cpu.o cpuexec.o cpuops.o crosshairs.o dma.o dsp.o dsp1.o dsp2.o dsp3.o dsp4.o fxinst.o fxemu.o gfx.o globals.o logger.o memmap.o movie.o obc1.o ppu.o stream.o sa1.o sa1cpu.o screenshot.o sdd1.o sdd1emu.o seta.o seta010.o seta011.o seta018.o snapshot.o snes9x.o spc7110.o srtc.o tile.o filter/2xsai.o filter/blit.o filter/epx.o filter/hq2x.o filter/snes_ntsc.o statemanager.o sdlmain.o sdlinput.o oglvideo.o sdlaudio.o
+DISABLED_O = movie.o snapshot.o
+
+OBJECTS    = wapu/apu.o wapu/spc700/spc700a.o bsx.o c4.o c4emu.o cheats.o cheats2.o clip.o conffile.o controls.o cpu.o cpuexec.o cpuops.o crosshairs.o dma.o dsp.o dsp1.o dsp2.o dsp3.o dsp4.o fxinst.o fxemu.o gfx.o globals.o logger.o memmap.o obc1.o ppu.o stream.o sa1.o sa1cpu.o screenshot.o sdd1.o sdd1emu.o seta.o seta010.o seta011.o seta018.o snes9x.o spc7110.o srtc.o tile.o filter/2xsai.o filter/blit.o filter/epx.o filter/hq2x.o filter/snes_ntsc.o statemanager.o ogl/sdlmain.o ogl/sdlinput.o ogl/sdlaudio.o ogl/oglvideo.o
 DEFS       = -DMITSHM
 
 ifdef S9XDEBUGGER
@@ -36,7 +38,7 @@ GASM       = g++
 INCLUDES   = -I. -I.. -Iunzip/ -Ijma/ -Ifilter/ -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads
 
 CCFLAGS    = -O3 -fomit-frame-pointer -fno-exceptions -fno-rtti -pedantic -Wall -W -Wno-unused-parameter -I/usr/include/SDL -D_GNU_SOURCE=1 -D_REENTRANT -DZLIB -DUNZIP_SUPPORT -DJMA_SUPPORT -DHAVE_LIBPNG -DHAVE_MKSTEMP -DHAVE_STRINGS_H -DHAVE_SYS_IOCTL_H -DHAVE_STDINT_H -DRIGHTSHIFT_IS_SAR $(DEFS) $(EXTRADEFS)
-CFLAGS     = $(CCFLAGS) -Wno-variadic-macros -Wno-comment -I/usr/include/SDL
+CFLAGS     = $(CCFLAGS) -Wno-strict-aliasing -Wno-variadic-macros -Wno-comment -I/usr/include/SDL
 
 COMMONSRC=escommon/esShader.c    \
           escommon/esTransform.c \

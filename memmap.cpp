@@ -3539,8 +3539,8 @@ void CMemory::ApplyROMFixes (void)
 			Timings.APUSpeedup = 1;
 	}
 
-	// neagix: set nowhere
-//	S9xAPUTimingSetSpeedup(Timings.APUSpeedup);
+	// neagix: emulated also in old core
+	S9xAPUTimingSetSpeedup(Timings.APUSpeedup);
 
 	//// Other timing hacks :(
 
