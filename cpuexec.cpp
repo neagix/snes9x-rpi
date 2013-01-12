@@ -246,10 +246,11 @@ void S9xDoHEventProcessing (void)
 			// notaz: run spc700 in sound 'speed hack' mode
 			if (Timings.APUSpeedup > 0)
 			{
-				if(CPU.APU_Cycles <= CPU.Cycles) {
+                            S9xAPUExecute();
+/*				if(CPU.APU_Cycles <= CPU.Cycles) {
 					int cycles = CPU.Cycles - CPU.APU_Cycles;
 					CPU.APU_Cycles += cycles - spc700_execute(cycles);
-				}
+				} */
 			}
 		
 			if (Settings.SuperFX)
@@ -260,21 +261,22 @@ void S9xDoHEventProcessing (void)
 			}
 
 			// neagix: instead of synchronizing with S9xAPUEndScanline() 
-			if (Settings.SoundSync) {
+                        S9xAPUEndScanline();
+/*			if (Settings.SoundSync) {
 //				S9xGenerateSound ();
 				if(CPU.APU_Cycles <= CPU.Cycles) {
 					int cycles = CPU.Cycles - CPU.APU_Cycles;
 					CPU.APU_Cycles += cycles - spc700_execute(cycles);
 				}
 				
-			}			
+			}		*/	
 
 			CPU.Cycles -= Timings.H_Max;
 			CPU.PrevCycles -= Timings.H_Max;
 			
 			// neagix: this is not available in the old APU
-//			S9xAPUSetReferenceTime(CPU.Cycles);
-			CPU.APU_Cycles -= spc700_execute(0);
+			S9xAPUSetReferenceTime(CPU.Cycles);
+//			CPU.APU_Cycles -= spc700_execute(0);
 
 			// neagix: instead we use update the APU_cycles logic
 			// neagix: the ASM version of spc700 does not (apparently) update any counter

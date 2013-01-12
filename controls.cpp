@@ -2170,11 +2170,13 @@ void S9xApplyCommand (s9xcommand_t cmd, int16 data1, int16 data2)
 						break;
 
 					case LoadFreezeFile:
-						S9xUnfreezeGame(S9xChooseFilename(TRUE));
+                                            fprintf(stderr, "Load status not supported!\n");
+						//S9xUnfreezeGame(S9xChooseFilename(TRUE));
 						break;
 
 					case SaveFreezeFile:
-						S9xFreezeGame(S9xChooseFilename(FALSE));
+                                            fprintf(stderr, "Save status not supported!\n");
+						//S9xFreezeGame(S9xChooseFilename(FALSE));
 						break;
 
 					case LoadOopsFile:
@@ -2316,15 +2318,18 @@ void S9xApplyCommand (s9xcommand_t cmd, int16 data1, int16 data2)
 						break;
 
 					case BeginRecordingMovie:
-						if (S9xMovieActive())
+/*						if (S9xMovieActive())
 							S9xMovieStop(FALSE);
 						S9xMovieCreate(S9xChooseMovieFilename(FALSE), 0xFF, MOVIE_OPT_FROM_RESET, NULL, 0);
+ * */
 						break;
 
 					case LoadMovie:
+                                            /*
 						if (S9xMovieActive())
 							S9xMovieStop(FALSE);
 						S9xMovieOpen(S9xChooseMovieFilename(TRUE), FALSE);
+                                             * */
 						break;
 
 					case EndRecordingMovie:

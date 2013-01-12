@@ -142,6 +142,163 @@ static inline void S9xSetSoundADSR (int channel, int attack_ind, int decay_ind,
     }
 }
 
+uint8 S9xAPUGetByteZ (uint8 Address)
+{
+    if (Address >= 0xf0 && IAPU.DirectPage == IAPU.RAM)
+    {
+	if (Address >= 0xf4 && Address <= 0xf7)
+	{
+#ifdef SPC700_SHUTDOWN
+	    IAPU.WaitAddress2 = IAPU.WaitAddress1;
+	    IAPU.WaitAddress1 = IAPU.PC;
+#endif	    
+	    return (IAPU.RAM [Address]);
+	}
+	if (Address >= 0xfd)
+	{
+#ifdef SPC700_SHUTDOWN
+	    IAPU.WaitAddress2 = IAPU.WaitAddress1;
+	    IAPU.WaitAddress1 = IAPU.PC;
+#endif	    
+	    uint8 t = IAPU.RAM [Address];
+	    IAPU.RAM [Address] = 0;
+	    return (t);
+	}
+	else
+	if (Address == 0xf3)
+	    return (S9xGetAPUDSP ());
+
+	return (IAPU.RAM [Address]);
+    }
+    else
+	return (IAPU.DirectPage [Address]);
+}
+
+void S9xAPUSetByteZ (uint8 val, uint8 Address)
+{
+    if (Address >= 0xf0 && IAPU.DirectPage == IAPU.RAM)
+    {
+	if (Address == 0xf3)
+	    S9xSetAPUDSP (val);
+	else
+	if (Address >= 0xf4 && Address <= 0xf7)
+	    APU.OutPorts [Address - 0xf4] = val;
+	else
+	if (Address == 0xf1)
+	    S9xSetAPUControl (val);
+	else
+	if (Address < 0xfd)
+	{
+	    IAPU.RAM [Address] = val;
+	    if (Address >= 0xfa)
+	    {
+		if (val == 0)
+		    APU.TimerTarget [Address - 0xfa] = 0x100;
+		else
+		    APU.TimerTarget [Address - 0xfa] = val;
+	    }
+	}
+    }
+    else
+	IAPU.DirectPage [Address] = val;
+}
+
+uint8 S9xAPUGetByte (uint32 Address)
+{
+    Address &= 0xffff;
+    
+    if (Address <= 0xff && Address >= 0xf0)
+    {
+	if (Address >= 0xf4 && Address <= 0xf7)
+	{
+#ifdef SPC700_SHUTDOWN
+	    IAPU.WaitAddress2 = IAPU.WaitAddress1;
+	    IAPU.WaitAddress1 = IAPU.PC;
+#endif	    
+	    return (IAPU.RAM [Address]);
+	}
+	else
+	if (Address == 0xf3)
+	    return (S9xGetAPUDSP ());
+	if (Address >= 0xfd)
+	{
+#ifdef SPC700_SHUTDOWN
+	    IAPU.WaitAddress2 = IAPU.WaitAddress1;
+	    IAPU.WaitAddress1 = IAPU.PC;
+#endif
+	    uint8 t = IAPU.RAM [Address];
+	    IAPU.RAM [Address] = 0;
+	    return (t);
+	}
+	return (IAPU.RAM [Address]);
+    }
+    else
+	return (IAPU.RAM [Address]);
+}
+
+void S9xAPUSetByte (uint8 val, uint32 Address)
+{
+    Address &= 0xffff;
+    
+    if (Address <= 0xff && Address >= 0xf0)
+    {
+	if (Address == 0xf3)
+	    S9xSetAPUDSP (val);
+	else
+	if (Address >= 0xf4 && Address <= 0xf7)
+	    APU.OutPorts [Address - 0xf4] = val;
+	else
+	if (Address == 0xf1)
+	    S9xSetAPUControl (val);
+	else
+	if (Address < 0xfd)
+	{
+	    IAPU.RAM [Address] = val;
+	    if (Address >= 0xfa)
+	    {
+		if (val == 0)
+		    APU.TimerTarget [Address - 0xfa] = 0x100;
+		else
+		    APU.TimerTarget [Address - 0xfa] = val;
+	    }
+	}
+    }
+    else
+    {
+#if 0
+if (Address >= 0x2500 && Address <= 0x2504)
+printf ("%06d %04x <- %02x\n", ICPU.Scanline, Address, val);
+if (Address == 0x26c6)
+{
+    extern FILE *apu_trace;
+    extern FILE *trace;
+    APU.Flags |= TRACE_FLAG;
+    CPU.Flags |= TRACE_FLAG;
+    if (apu_trace == NULL)
+	apu_trace = fopen ("aputrace.log", "wb");
+    if (trace == NULL)
+	trace = fopen ("trace.log", "wb");
+    printf ("TRACING SWITCHED ON\n");
+}
+#endif
+	if (Address < 0xffc0)
+	    IAPU.RAM [Address] = val;
+	else
+	{
+	    APU.ExtraRAM [Address - 0xffc0] = val;
+	    if (!APU.ShowROM)
+		IAPU.RAM [Address] = val;
+	}
+    }
+}
+
+void S9xSetSoundMute (bool8 mute)
+{
+    //bool8 old = so.mute_sound;
+    so.mute_sound = mute;
+    //return (old);
+}
+
 static inline void S9xSetSoundVolume (int channel, short volume_left, short volume_right)
 {
     Channel *ch = &SoundData.channels[channel];
@@ -277,7 +434,7 @@ static inline bool8 S9xSetSoundMode (int channel, int mode)
     return (FALSE);
 }
 
-static inline void S9xSetSoundControl (int sound_switch)
+void S9xSetSoundControl (int sound_switch)
 {
     so.sound_switch = sound_switch;
 }
@@ -1247,6 +1404,7 @@ bool8 S9xSyncSound (void)
 	S9xLandSamples();
 
 	return (spc::sound_in_sync); */
+    return 1;
 }
 
 void S9xAPUEndScanline (void)

@@ -93,6 +93,8 @@ typedef struct {
 } SoundStatus;
 
 extern "C" volatile SoundStatus so;
+extern "C" uint8 APUROM [64];
+extern "C" int NoiseFreq [32];
 
 typedef struct {
     int state;
@@ -182,7 +184,7 @@ void S9xStartSample (int channel);
 
 extern "C" void S9xMixSamples (uint8 *buffer, int sample_count);
 extern "C" void S9xMixSamplesO (uint8 *buffer, int sample_count, int byte_offset);
-bool8 S9xOpenSoundDevice (int, bool8, int);
+//bool8 S9xOpenSoundDevice (int, bool8, int);
 void S9xSetPlaybackRate (uint32 rate);
 #endif
 
@@ -216,8 +218,6 @@ if ((v) < -128) \
 else \
 if ((v) > 127) \
     (v) = 127
-
-void S9xSetSoundMute (bool8 mute);
 
 static inline void S9xSetEnvRate (Channel *ch, unsigned long rate, int direction, int target, unsigned int mode)
 {

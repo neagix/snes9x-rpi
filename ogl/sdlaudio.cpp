@@ -42,6 +42,9 @@
 #include <errno.h>
 #include <string.h>
 
+#include "port.h"
+#include "wapu/soundux.h"
+
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
 #endif
@@ -83,6 +86,7 @@ void S9xToggleSoundChannel (int c)
 	S9xSetSoundControl(sound_switch);
 }
 
+
 static void
 sdl_audio_callback (void *userdata, Uint8 *stream, int len)
 {
@@ -92,7 +96,7 @@ sdl_audio_callback (void *userdata, Uint8 *stream, int len)
 
     return;
 }
-
+/*
 static void
 samples_available (void *data)
 {
@@ -102,10 +106,11 @@ samples_available (void *data)
 
     return;
 }
+ */
 
 bool8 S9xOpenSoundDevice (void)
 {
-#ifdef HAVE_SDL
+//#ifdef HAVE_SDL
 	SDL_InitSubSystem (SDL_INIT_AUDIO);
 
 	audiospec = (SDL_AudioSpec *) malloc (sizeof (SDL_AudioSpec));
@@ -116,6 +121,8 @@ bool8 S9xOpenSoundDevice (void)
 	audiospec->samples = (sound_buffer_size * audiospec->freq / 1000) >> 1;
 	audiospec->callback = sdl_audio_callback;
 	
+        // neagix: TODO: use buffer size
+        
 	printf ("SDL sound driver initializing...\n");
 	printf ("    --> (Frequency: %dhz, Latency: %dms)...",
 		audiospec->freq,
@@ -135,8 +142,8 @@ bool8 S9xOpenSoundDevice (void)
 	
 	SDL_PauseAudio (0);
 	
-	S9xSetSamplesAvailableCallback (samples_available, NULL);
-#endif
+//	S9xSetSamplesAvailableCallback (samples_available, NULL);
+//#endif
 
 	return (TRUE);
 }

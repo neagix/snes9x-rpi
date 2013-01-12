@@ -51,6 +51,7 @@
 #include "snes9x.h"
 #include "memmap.h"
 #include "wapu/apu.h"
+#include "wapu/soundux.h"
 #include "gfx.h"
 #include "snapshot.h"
 #include "controls.h"
@@ -79,11 +80,13 @@ extern ConfigFile::secvec_t	keymaps;
 
 StateManager stateMan;
 
+/*
 #define FIXED_POINT				0x10000
 #define FIXED_POINT_SHIFT		16
 #define FIXED_POINT_REMAINDER	0xffff
 #define SOUND_BUFFER_SIZE		(1024 * 16)
 #define SOUND_BUFFER_SIZE_MASK	(SOUND_BUFFER_SIZE - 1)
+*/
 
 static volatile bool8	block_signal         = FALSE;
 static volatile bool8	block_generate_sound = FALSE;
@@ -248,7 +251,12 @@ void S9xParseArg (char **argv, int &i, int argc)
 	if (!strcasecmp(argv[i], "-buffersize"))
 	{
 		if (i + 1 < argc)
+                {
 			sound_buffer_size = atoi(argv[++i]);
+                        
+                        if (sound_buffer_size > MAX_BUFFER_SIZE)
+                            sound_buffer_size = MAX_BUFFER_SIZE;
+                }
 		else
 			S9xUsage();
 	}
@@ -377,7 +385,10 @@ void S9xParsePortConfig (ConfigFile &conf, int pass)
 	snapshot_filename           = conf.GetStringDup("Unix::SnapshotFilename",    NULL);
 	play_smv_filename           = conf.GetStringDup("Unix::PlayMovieFilename",   NULL);
 	record_smv_filename         = conf.GetStringDup("Unix::RecordMovieFilename", NULL);
-	sound_buffer_size           = conf.GetUInt     ("Unix::SoundBufferSize",     100);
+	sound_buffer_size           = conf.GetUInt     ("Unix::SoundBufferSize",     SOUND_BUFFER_SIZE);
+        
+        if (sound_buffer_size > MAX_BUFFER_SIZE)
+           sound_buffer_size = MAX_BUFFER_SIZE;
 
 	// domaemon: default input configuration
 	S9xParseInputConfig(conf, 1);
@@ -528,6 +539,7 @@ const char * S9xSelectFilename (const char *def, const char *dir1, const char *e
 	return (NULL);
 }
 
+#if 0
 const char * S9xChooseFilename (bool8 read_only)
 {
 	char	s[PATH_MAX + 1];
@@ -594,6 +606,7 @@ void S9xCloseSnapshotFile (STREAM file)
 {
 	CLOSE_STREAM(file);
 }
+#endif
 
 bool8 S9xInitUpdate (void)
 {

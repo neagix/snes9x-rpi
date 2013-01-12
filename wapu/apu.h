@@ -51,6 +51,9 @@ typedef union
 } YAndA;
 */
 
+#define SPC_SAVE_STATE_BLOCK_SIZE (1024 * 65)
+#define SPC_FILE_SIZE             (66048)
+
 struct SIAPU
 {
     uint8  *DirectPage;        // 0x00
@@ -135,6 +138,7 @@ extern "C" {
 	uint8 S9xAPUReadPort (int);
 	void S9xAPUWritePort (int, uint8);
         void S9xAPUExecute (void);
+        void S9xSetSoundControl (int sound_switch);
         void S9xAPUEndScanline (void);
         void S9xAPUTimingSetSpeedup (int ticks);
         void S9xAPUSetReferenceTime (int32 cpucycles);
@@ -147,6 +151,7 @@ extern "C" {
 	uint8 S9xGetAPUDSP ();
 	void S9xSetAPUTimer (uint16 Address, uint8 byte);
 	bool8 S9xInitSound (bool8 stereo, int buffer_size);
+        void S9xSetSoundMute (bool8 mute);
 	void S9xOpenCloseSoundTracingFile (bool8);
 	void S9xPrintAPUState ();
 	extern int32 S9xAPUCycles [256];	// Scaled cycle lengths
@@ -154,6 +159,11 @@ extern "C" {
 	extern void (*S9xApuOpcodes [256]) (void);
 	extern void (*S9xApuOpcodesReal [256]) (void);
 	void APUCompare();
+        
+        uint8 S9xAPUGetByteZ (uint8 Address);
+        void S9xAPUSetByteZ (uint8 val, uint8 Address);
+        uint8 S9xAPUGetByte (uint32 Address);
+        void S9xAPUSetByte (uint8 val, uint32 Address);
 }
 
 
