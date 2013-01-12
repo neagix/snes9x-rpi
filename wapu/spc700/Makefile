@@ -1,6 +1,6 @@
 # Makefile for MS Visual C
 
-ALL : spc700a.s
+all : spc700a.s
 
 spc700a.s:	spcgen
 	./spcgen.x
