@@ -50,7 +50,7 @@
 
 #include "snes9x.h"
 #include "memmap.h"
-#include "apu/apu.h"
+#include "wapu/apu.h"
 #include "gfx.h"
 #include "snapshot.h"
 #include "controls.h"

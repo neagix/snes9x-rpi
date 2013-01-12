@@ -1,156 +1,11 @@
 /***********************************************************************************
   Snes9x - Portable Super Nintendo Entertainment System (TM) emulator.
+  http://www.snes9x.com/
 
-  (c) Copyright 1996 - 2002  Gary Henderson (gary.henderson@ntlworld.com),
-                             Jerremy Koot (jkoot@snes9x.com)
-
-  (c) Copyright 2002 - 2004  Matthew Kendora
-
-  (c) Copyright 2002 - 2005  Peter Bortas (peter@bortas.org)
-
-  (c) Copyright 2004 - 2005  Joel Yliluoma (http://iki.fi/bisqwit/)
-
-  (c) Copyright 2001 - 2006  John Weidman (jweidman@slip.net)
-
-  (c) Copyright 2002 - 2006  funkyass (funkyass@spam.shaw.ca),
-                             Kris Bleakley (codeviolation@hotmail.com)
-
-  (c) Copyright 2002 - 2010  Brad Jorsch (anomie@users.sourceforge.net),
-                             Nach (n-a-c-h@users.sourceforge.net),
-
-  (c) Copyright 2002 - 2011  zones (kasumitokoduck@yahoo.com)
-
-  (c) Copyright 2006 - 2007  nitsuja
-
-  (c) Copyright 2009 - 2011  BearOso,
-                             OV2
-
-
-  BS-X C emulator code
-  (c) Copyright 2005 - 2006  Dreamer Nom,
-                             zones
-
-  C4 x86 assembler and some C emulation code
-  (c) Copyright 2000 - 2003  _Demo_ (_demo_@zsnes.com),
-                             Nach,
-                             zsKnight (zsknight@zsnes.com)
-
-  C4 C++ code
-  (c) Copyright 2003 - 2006  Brad Jorsch,
-                             Nach
-
-  DSP-1 emulator code
-  (c) Copyright 1998 - 2006  _Demo_,
-                             Andreas Naive (andreasnaive@gmail.com),
-                             Gary Henderson,
-                             Ivar (ivar@snes9x.com),
-                             John Weidman,
-                             Kris Bleakley,
-                             Matthew Kendora,
-                             Nach,
-                             neviksti (neviksti@hotmail.com)
-
-  DSP-2 emulator code
-  (c) Copyright 2003         John Weidman,
-                             Kris Bleakley,
-                             Lord Nightmare (lord_nightmare@users.sourceforge.net),
-                             Matthew Kendora,
-                             neviksti
-
-  DSP-3 emulator code
-  (c) Copyright 2003 - 2006  John Weidman,
-                             Kris Bleakley,
-                             Lancer,
-                             z80 gaiden
-
-  DSP-4 emulator code
-  (c) Copyright 2004 - 2006  Dreamer Nom,
-                             John Weidman,
-                             Kris Bleakley,
-                             Nach,
-                             z80 gaiden
-
-  OBC1 emulator code
-  (c) Copyright 2001 - 2004  zsKnight,
-                             pagefault (pagefault@zsnes.com),
-                             Kris Bleakley
-                             Ported from x86 assembler to C by sanmaiwashi
-
-  SPC7110 and RTC C++ emulator code used in 1.39-1.51
-  (c) Copyright 2002         Matthew Kendora with research by
-                             zsKnight,
-                             John Weidman,
-                             Dark Force
-
-  SPC7110 and RTC C++ emulator code used in 1.52+
-  (c) Copyright 2009         byuu,
-                             neviksti
-
-  S-DD1 C emulator code
-  (c) Copyright 2003         Brad Jorsch with research by
-                             Andreas Naive,
-                             John Weidman
-
-  S-RTC C emulator code
-  (c) Copyright 2001 - 2006  byuu,
-                             John Weidman
-
-  ST010 C++ emulator code
-  (c) Copyright 2003         Feather,
-                             John Weidman,
-                             Kris Bleakley,
-                             Matthew Kendora
-
-  Super FX x86 assembler emulator code
-  (c) Copyright 1998 - 2003  _Demo_,
-                             pagefault,
-                             zsKnight
-
-  Super FX C emulator code
-  (c) Copyright 1997 - 1999  Ivar,
-                             Gary Henderson,
-                             John Weidman
-
-  Sound emulator code used in 1.5-1.51
-  (c) Copyright 1998 - 2003  Brad Martin
-  (c) Copyright 1998 - 2006  Charles Bilyue'
-
-  Sound emulator code used in 1.52+
-  (c) Copyright 2004 - 2007  Shay Green (gblargg@gmail.com)
-
-  SH assembler code partly based on x86 assembler code
-  (c) Copyright 2002 - 2004  Marcus Comstedt (marcus@mc.pp.se)
-
-  2xSaI filter
-  (c) Copyright 1999 - 2001  Derek Liauw Kie Fa
-
-  HQ2x, HQ3x, HQ4x filters
-  (c) Copyright 2003         Maxim Stepin (maxim@hiend3d.com)
-
-  NTSC filter
-  (c) Copyright 2006 - 2007  Shay Green
-
-  GTK+ GUI code
-  (c) Copyright 2004 - 2011  BearOso
-
-  Win32 GUI code
-  (c) Copyright 2003 - 2006  blip,
-                             funkyass,
-                             Matthew Kendora,
-                             Nach,
-                             nitsuja
-  (c) Copyright 2009 - 2011  OV2
-
-  Mac OS GUI code
-  (c) Copyright 1998 - 2001  John Stiles
-  (c) Copyright 2001 - 2011  zones
-
-
+  See CREDITS for copyright and authorship information.
+  
   Specific ports contains the works of other authors. See headers in
   individual files.
-
-
-  Snes9x homepage: http://www.snes9x.com/
 
   Permission to use, copy, modify and/or distribute Snes9x in both binary
   and source form, for non-commercial purposes, is hereby granted without
@@ -175,12 +30,11 @@
   Nintendo Co., Limited and its subsidiary companies.
  ***********************************************************************************/
 
-
 #include "snes9x.h"
 #include "memmap.h"
 #include "cpuops.h"
 #include "dma.h"
-#include "apu/apu.h"
+#include "wapu/apu.h"
 #include "fxemu.h"
 #include "snapshot.h"
 #ifdef DEBUGGER
@@ -387,6 +241,17 @@ void S9xDoHEventProcessing (void)
 			break;
 
 		case HC_HCOUNTER_MAX_EVENT:
+			// neagix: copied over from old core
+			// neagix: TODO: use a damn thread to run SPC700 and proper semaphores
+			// notaz: run spc700 in sound 'speed hack' mode
+			if (Timings.APUSpeedup > 0)
+			{
+				if(CPU.APU_Cycles <= CPU.Cycles) {
+					int cycles = CPU.Cycles - CPU.APU_Cycles;
+					CPU.APU_Cycles += cycles - spc700_execute(cycles);
+				}
+			}
+		
 			if (Settings.SuperFX)
 			{
 				if (!SuperFX.oneLineDone)
@@ -394,10 +259,30 @@ void S9xDoHEventProcessing (void)
 				SuperFX.oneLineDone = FALSE;
 			}
 
-			S9xAPUEndScanline();
+			// neagix: instead of synchronizing with S9xAPUEndScanline() 
+			if (Settings.SoundSync) {
+//				S9xGenerateSound ();
+				if(CPU.APU_Cycles <= CPU.Cycles) {
+					int cycles = CPU.Cycles - CPU.APU_Cycles;
+					CPU.APU_Cycles += cycles - spc700_execute(cycles);
+				}
+				
+			}			
+
 			CPU.Cycles -= Timings.H_Max;
 			CPU.PrevCycles -= Timings.H_Max;
-			S9xAPUSetReferenceTime(CPU.Cycles);
+			
+			// neagix: this is not available in the old APU
+//			S9xAPUSetReferenceTime(CPU.Cycles);
+			CPU.APU_Cycles -= spc700_execute(0);
+
+			// neagix: instead we use update the APU_cycles logic
+			// neagix: the ASM version of spc700 does not (apparently) update any counter
+			// to create APU NOPs
+			if (/*CPU.APU_APUExecuting*/ Settings.APUEnabled)
+				CPU.APU_Cycles -= Timings.H_Max;
+//			else
+//				CPU.APU_Cycles = 0;
 
 			if ((Timings.NMITriggerPos != 0xffff) && (Timings.NMITriggerPos >= Timings.H_Max))
 				Timings.NMITriggerPos -= Timings.H_Max;
@@ -496,6 +381,52 @@ void S9xDoHEventProcessing (void)
 				}
 
 			}
+			
+			// neagix: block copied for old core
+			{
+			if (APU.TimerEnabled [2])
+			{
+			APU.Timer [2] += 4;
+			while (APU.Timer [2] >= APU.TimerTarget [2])
+			{
+				IAPU.RAM [0xff] = (IAPU.RAM [0xff] + 1) & 0xf;
+				APU.Timer [2] -= APU.TimerTarget [2];
+//#ifdef SPC700_SHUTDOWN		
+//				IAPU.WaitCounter++;
+//				/*IAPU.APUExecuting*/CPU.APU_APUExecuting= TRUE;
+//#endif		
+			}
+			}
+			if (CPU.V_Counter & 1)
+			{
+			if (APU.TimerEnabled [0])
+			{
+				APU.Timer [0]++;
+				if (APU.Timer [0] >= APU.TimerTarget [0])
+				{
+				IAPU.RAM [0xfd] = (IAPU.RAM [0xfd] + 1) & 0xf;
+				APU.Timer [0] = 0;
+//#ifdef SPC700_SHUTDOWN		
+//				IAPU.WaitCounter++;
+//				/*IAPU.APUExecuting*/CPU.APU_APUExecuting = TRUE;
+//#endif		    
+				}
+			}
+			if (APU.TimerEnabled [1])
+			{
+				APU.Timer [1]++;
+				if (APU.Timer [1] >= APU.TimerTarget [1])
+				{
+				IAPU.RAM [0xfe] = (IAPU.RAM [0xfe] + 1) & 0xf;
+				APU.Timer [1] = 0;
+//#ifdef SPC700_SHUTDOWN		
+//				IAPU.WaitCounter++;
+//				/*IAPU.APUExecuting*/CPU.APU_APUExecuting = TRUE;
+//#endif		    
+				}
+			}
+			}
+		}			
 
 			if (CPU.V_Counter == PPU.ScreenHeight + 3)	// FIXME: not true
 			{
