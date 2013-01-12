@@ -548,14 +548,14 @@ MFLAGS=
 MAKEFLAGS=
 
 # Identity of this package.
-PACKAGE_NAME='Snes9x'
-PACKAGE_TARNAME='snes9x'
+PACKAGE_NAME='Snes9x-rpi'
+PACKAGE_TARNAME='snes9x-rpi'
 PACKAGE_VERSION='1.53'
-PACKAGE_STRING='Snes9x 1.53'
+PACKAGE_STRING='Snes9x-rpi 1.53'
 PACKAGE_BUGREPORT=''
 PACKAGE_URL=''
 
-ac_unique_file="sdlmain.cpp"
+ac_unique_file="ogl/sdlmain.cpp"
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>
