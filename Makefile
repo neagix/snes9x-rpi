@@ -7,7 +7,10 @@ S9XJMA=1
 OS         = `uname -s -r -m|sed \"s/ /-/g\"|tr \"[A-Z]\" \"[a-z]\"|tr \"/()\" \"___\"`
 BUILDDIR   = .
 
-OBJECTS    = wapu/apu.o wapu/soundux.o wapu/spc700/spc700a.o bsx.o c4.o c4emu.o movie.o snapshot.o cheats.o cheats2.o clip.o conffile.o controls.o cpu.o cpuexec.o cpuops.o crosshairs.o dma.o dsp.o dsp1.o dsp2.o dsp3.o dsp4.o fxinst.o fxemu.o gfx.o globals.o logger.o memmap.o obc1.o ppu.o stream.o sa1.o sa1cpu.o screenshot.o sdd1.o sdd1emu.o seta.o seta010.o seta011.o seta018.o snes9x.o spc7110.o srtc.o tile.o filter/2xsai.o filter/blit.o filter/epx.o filter/hq2x.o filter/snes_ntsc.o statemanager.o ogl/sdlmain.o ogl/sdlinput.o ogl/sdlaudio.o ogl/oglvideo.o
+#SPC700 = wapu/spc700/spc700a.o 
+SPC700 = wapu/spc700/debug/spc700.o 
+
+OBJECTS    = wapu/apu.o wapu/soundux.o $(SPC700) bsx.o c4.o c4emu.o movie.o snapshot.o cheats.o cheats2.o clip.o conffile.o controls.o cpu.o cpuexec.o cpuops.o crosshairs.o dma.o dsp.o dsp1.o dsp2.o dsp3.o dsp4.o fxinst.o fxemu.o gfx.o globals.o logger.o memmap.o obc1.o ppu.o stream.o sa1.o sa1cpu.o screenshot.o sdd1.o sdd1emu.o seta.o seta010.o seta011.o seta018.o snes9x.o spc7110.o srtc.o tile.o filter/2xsai.o filter/blit.o filter/epx.o filter/hq2x.o filter/snes_ntsc.o statemanager.o ogl/snes9x-rpi.o sdl/sdlinput.o sdl/sdlaudio.o ogl/oglvideo.o
 DEFS       = -DMITSHM
 
 ifdef S9XDEBUGGER

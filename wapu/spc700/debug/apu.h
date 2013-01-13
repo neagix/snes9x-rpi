@@ -107,19 +107,21 @@ struct SAPU
     bool8  TimerValueWritten [3];
 };
 
-EXTERN_C struct SAPU APU;
-EXTERN_C struct SIAPU IAPU;
-EXTERN_C struct SIAPU IAPU2;
-EXTERN_C struct SIAPU *pIAPU;
+extern "C" {
+    struct SAPU APU;
+    struct SIAPU IAPU;
+    struct SIAPU IAPU2;
+    struct SIAPU *pIAPU;
+}
 
-STATIC inline void S9xAPUUnpackStatus()
+static inline void S9xAPUUnpackStatus()
 {
     IAPU._Zero     =((IAPU.P & Zero) == 0) | (IAPU.P & Negative);
     IAPU._Carry    = (IAPU.P & Carry);
     IAPU._Overflow = (IAPU.P & Overflow);
 }
 
-STATIC inline void S9xAPUPackStatus()
+static inline void S9xAPUPackStatus()
 {
     IAPU.P &= ~(Zero | Negative | Carry | Overflow);
     if(IAPU._Carry)       IAPU.P |= Carry;
@@ -128,7 +130,7 @@ STATIC inline void S9xAPUPackStatus()
     if(IAPU._Zero & 0x80) IAPU.P |= Negative;
 }
 
-START_EXTERN_C
+extern "C" {
 void S9xResetAPU (void);
 bool8 S9xInitAPU ();
 void S9xDeinitAPU ();
@@ -147,7 +149,7 @@ extern int32 S9xAPUCycleLengths [256];	// Raw data.
 extern void (*S9xApuOpcodes [256]) (void);
 extern void (*S9xApuOpcodesReal [256]) (void);
 void APUCompare();
-END_EXTERN_C
+}
 
 
 #define APU_VOL_LEFT 0x00

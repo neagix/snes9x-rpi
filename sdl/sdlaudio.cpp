@@ -63,6 +63,7 @@
 #include "logger.h"
 #include "display.h"
 #include "conffile.h"
+#include <cmath>
 
 #ifdef DEBUGGER
 #include "debug.h"
@@ -72,78 +73,106 @@
 //#include "sdl_snes9x.h"
 
 SDL_AudioSpec *audiospec;
-uint32        sound_buffer_size;
+//uint32 sound_buffer_size;
 
-void S9xToggleSoundChannel (int c)
-{
-	static uint8	sound_switch = 255;
+void S9xToggleSoundChannel(int c) {
+    static uint8 sound_switch = 255;
 
-	if (c == 8)
-		sound_switch = 255;
-	else
-		sound_switch ^= 1 << c;
+    if (c == 8)
+        sound_switch = 255;
+    else
+        sound_switch ^= 1 << c;
 
-	S9xSetSoundControl(sound_switch);
+    S9xSetSoundControl(sound_switch);
 }
-
 
 static void
-sdl_audio_callback (void *userdata, Uint8 *stream, int len)
-{
-    SDL_LockAudio ();
-    S9xMixSamples (stream, len >> (Settings.SixteenBitSound ? 1 : 0));
-    SDL_UnlockAudio ();
-
-    return;
+sdl_audio_callback(void *userdata, Uint8 *stream, int len) {
+    SDL_LockAudio();
+//    printf("[SDL] Filling out %d samples\n", len);
+    S9xMixSamples(stream, len >> (Settings.SixteenBitSound ? 1 : 0));
+    SDL_UnlockAudio();
 }
-/*
-static void
-samples_available (void *data)
-{
-    SDL_LockAudio ();
-    S9xFinalizeSamples ();
-    SDL_UnlockAudio ();
 
-    return;
+void create_tone( void *userdata, Uint8 *stream, int len ) {
+  static double angle = 0.0 ;
+  int i = 0 ;
+  fprintf( stderr, "Filling %d\n", len ) ;
+  for(i=0;i<len;i++) {
+    *stream++ = 128*cos(angle) ; // I think that this should be 128 * cos(angle) as cos is (-1,1)
+    angle += 3.14159/100 ;       // and a Uint8 is only 8 bits (256 values)
+    if( angle > 2.0*3.14159 ) {
+      angle -= 2.0*3.14159 ;
+    }
+  }
 }
- */
 
-bool8 S9xOpenSoundDevice (void)
-{
-//#ifdef HAVE_SDL
-	SDL_InitSubSystem (SDL_INIT_AUDIO);
 
-	audiospec = (SDL_AudioSpec *) malloc (sizeof (SDL_AudioSpec));
-	
-	audiospec->freq = Settings.SoundPlaybackRate;
-	audiospec->channels = Settings.Stereo ? 2 : 1;
-	audiospec->format = Settings.SixteenBitSound ? AUDIO_S16SYS : AUDIO_U8;
-	audiospec->samples = (sound_buffer_size * audiospec->freq / 1000) >> 1;
-	audiospec->callback = sdl_audio_callback;
-	
-        // neagix: TODO: use buffer size
-        
-	printf ("SDL sound driver initializing...\n");
-	printf ("    --> (Frequency: %dhz, Latency: %dms)...",
-		audiospec->freq,
-		(audiospec->samples * 1000 / audiospec->freq) << 1);
-	
-	if (SDL_OpenAudio (audiospec, NULL) < 0)
-	  {
-	    printf ("Failed\n");
-	    
-	    free (audiospec);
-	    audiospec = NULL;
-	    
-	    return FALSE;
-	  }
-	
-	printf ("OK\n");
-	
-	SDL_PauseAudio (0);
-	
-//	S9xSetSamplesAvailableCallback (samples_available, NULL);
-//#endif
+void S9xLandSamples() {
+/*    SDL_LockAudio();
+    S9xFinalizeSamples();
+    SDL_UnlockAudio(); */
+}
 
-	return (TRUE);
+bool8 S9xOpenSoundDevice(void) {
+    SDL_InitSubSystem(SDL_INIT_AUDIO);
+
+    audiospec = (SDL_AudioSpec *) malloc(sizeof (SDL_AudioSpec));
+
+    audiospec->freq = Settings.SoundPlaybackRate;
+    audiospec->channels = Settings.Stereo ? 2 : 1;
+    audiospec->format = Settings.SixteenBitSound ? AUDIO_S16SYS : AUDIO_U8;
+    audiospec->samples = (so.buffer_size * audiospec->freq / 1000) >> 1;
+    audiospec->callback = sdl_audio_callback;
+//        audiospec->callback = create_tone;
+    
+    // neagix: TODO: use buffer size, somewhere
+
+    printf("SDL sound driver initializing...\n");
+    printf("    --> (Frequency: %dhz, Latency: %dms)...",
+            audiospec->freq,
+            (audiospec->samples * 1000 / audiospec->freq) << 1);
+
+    if (SDL_OpenAudio(audiospec, NULL) < 0) {
+        printf("Failed\n");
+
+        free(audiospec);
+        audiospec = NULL;
+
+        return FALSE;
+    }
+
+    printf("OK\n");
+
+    SDL_PauseAudio(0);
+
+    //	S9xSetSamplesAvailableCallback (samples_available, NULL);
+
+    return (TRUE);
+}
+
+bool8 S9xInitSound(bool8 stereo) {
+    //    so.sound_fd = -1;
+    so.sound_switch = 255;
+
+    so.playback_rate = 0;
+    // neagix: set, although never used!
+//    so.buffer_size = buffer_size;
+    so.stereo = stereo;
+    so.sixteen_bit = Settings.SixteenBitSound;
+    so.encoded = FALSE;
+
+    S9xResetSound(TRUE);
+
+    //    if (!(mode & 7))
+    //	return (1);
+
+    S9xSetSoundMute(TRUE);
+    if (!S9xOpenSoundDevice()) {
+        S9xMessage(S9X_ERROR, S9X_SOUND_DEVICE_OPEN_FAILED,
+                "Sound device open failed");
+        return (0);
+    }
+
+    return (1);
 }

@@ -1511,7 +1511,7 @@ int main (int argc, char **argv)
 		exit(1);
 	}
 
-	S9xInitSound(unixSettings.SoundBufferSize, 0);
+	S9xInitSound(Settings.Stereo, unixSettings.SoundBufferSize);
 	S9xSetSoundMute(TRUE);
 
 	S9xReportControllers();

@@ -46,7 +46,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
-#include "sdl_snes9x.h"
+#include "../sdl/sdl_snes9x.h"
 
 #include "snes9x.h"
 #include "memmap.h"
@@ -99,7 +99,7 @@ static const char	*s9x_base_dir        = NULL,
 					*play_smv_filename   = NULL,
 					*record_smv_filename = NULL;
 
-extern uint32           sound_buffer_size; // used in sdlaudio
+//extern uint32           sound_buffer_size; // used in sdlaudio
 
 static char		default_dir[PATH_MAX + 1];
 
@@ -252,10 +252,10 @@ void S9xParseArg (char **argv, int &i, int argc)
 	{
 		if (i + 1 < argc)
                 {
-			sound_buffer_size = atoi(argv[++i]);
+                    so.buffer_size = atoi(argv[++i]);
                         
-                        if (sound_buffer_size > MAX_BUFFER_SIZE)
-                            sound_buffer_size = MAX_BUFFER_SIZE;
+                        if (so.buffer_size > MAX_BUFFER_SIZE)
+                            so.buffer_size = MAX_BUFFER_SIZE;
                 }
 		else
 			S9xUsage();
@@ -385,10 +385,10 @@ void S9xParsePortConfig (ConfigFile &conf, int pass)
 	snapshot_filename           = conf.GetStringDup("Unix::SnapshotFilename",    NULL);
 	play_smv_filename           = conf.GetStringDup("Unix::PlayMovieFilename",   NULL);
 	record_smv_filename         = conf.GetStringDup("Unix::RecordMovieFilename", NULL);
-	sound_buffer_size           = conf.GetUInt     ("Unix::SoundBufferSize",     SOUND_BUFFER_SIZE);
+	so.buffer_size           = conf.GetUInt     ("Unix::SoundBufferSize",     SOUND_BUFFER_SIZE);
         
-        if (sound_buffer_size > MAX_BUFFER_SIZE)
-           sound_buffer_size = MAX_BUFFER_SIZE;
+        if (so.buffer_size > MAX_BUFFER_SIZE)
+           so.buffer_size = MAX_BUFFER_SIZE;
 
 	// domaemon: default input configuration
 	S9xParseInputConfig(conf, 1);
@@ -859,7 +859,7 @@ int main (int argc, char **argv)
 		exit(1);
 	}
 
-	S9xInitSound(sound_buffer_size, 0);
+	S9xInitSound(Settings.Stereo);
 	S9xSetSoundMute(TRUE);
 
 	S9xReportControllers();

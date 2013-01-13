@@ -555,7 +555,7 @@ PACKAGE_STRING='Snes9x-rpi 1.53'
 PACKAGE_BUGREPORT=''
 PACKAGE_URL=''
 
-ac_unique_file="ogl/sdlmain.cpp"
+ac_unique_file="ogl/snes9x-rpi.cpp"
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>

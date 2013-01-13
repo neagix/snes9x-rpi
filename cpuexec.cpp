@@ -218,7 +218,7 @@ void S9xDoHEventProcessing(void) {
 
         case HC_HCOUNTER_MAX_EVENT:
             // neagix: copied over from old core
-            // neagix: TODO: use a damn thread to run SPC700 and proper semaphores
+            // neagix: TODO: use a thread to run SPC700 and proper semaphores
             // notaz: run spc700 in sound 'speed hack' mode
             if (Timings.APUSpeedup > 0) {
                 S9xAPUExecute();
@@ -234,16 +234,7 @@ void S9xDoHEventProcessing(void) {
                 SuperFX.oneLineDone = FALSE;
             }
 
-            // neagix: instead of synchronizing with S9xAPUEndScanline() 
             S9xAPUEndScanline();
-            /*			if (Settings.SoundSync) {
-            //				S9xGenerateSound ();
-                                            if(CPU.APU_Cycles <= CPU.Cycles) {
-                                                    int cycles = CPU.Cycles - CPU.APU_Cycles;
-                                                    CPU.APU_Cycles += cycles - spc700_execute(cycles);
-                                            }
-				
-                                    }		*/
 
             CPU.Cycles -= Timings.H_Max;
             CPU.PrevCycles -= Timings.H_Max;
