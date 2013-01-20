@@ -1052,10 +1052,12 @@ void S9xMixSamplesO(uint8 *buffer, int sample_count, int byte_offset) {
                     ++tot;
                 }
 
+#if 0
                 printf("written %d samples\n", tot);
                 FILE *ad = fopen("audiodump.raw", "ab");
                 fwrite(MixBuffer, 2, sample_count, ad);
                 fclose(ad);
+#endif
             }
         }
     } else {
