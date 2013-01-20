@@ -33,7 +33,7 @@ ifdef S9XJMA
 OBJECTS   += jma/7zlzma.o jma/crc32.o jma/iiostrm.o jma/inbyte.o jma/jma.o jma/lzma.o jma/lzmadec.o jma/s9x-jma.o jma/winout.o
 endif
 
-EXTRADEFS	= -DASM_SPC700 -DRPI_NO_X
+EXTRADEFS	= -DASM_SPC700
 
 CCC        = @CXX@
 CC         = @CC@
