@@ -51,9 +51,9 @@
 #include <SDL/SDL.h>
 
 #ifdef PANDORA
-	#include <sys/types.h>
-	#include <sys/stat.h>
-	#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #endif
 
 #include "snes9x.h"
@@ -73,225 +73,196 @@ extern uint32 xs, ys, cl, cs;
 extern bool8_32 Scale;
 
 #ifdef PANDORA
-	#include "pandora_scaling/blitscale.h"
-	#include <iostream>
-	extern blit_scaler_option_t blit_scalers[];
-	extern blit_scaler_e g_scale;
+#include "pandora_scaling/blitscale.h"
+#include <iostream>
+extern blit_scaler_option_t blit_scalers[];
+extern blit_scaler_e g_scale;
 #endif
 
 #ifndef _ZAURUS
-int S9xMinCommandLineArgs ()
-{
+
+int S9xMinCommandLineArgs() {
     return (2);
 }
 
-void S9xGraphicsMode ()
-{
+void S9xGraphicsMode() {
 }
 
-void S9xTextMode ()
-{
+void S9xTextMode() {
 }
 #endif
 
+void S9xInitDisplay(int /*argc*/, char ** /*argv*/) {
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+        printf("Unable to initialize SDL: %s\n", SDL_GetError());
+    }
 
-void S9xInitDisplay (int /*argc*/, char ** /*argv*/)
-{	
-#ifdef CAANOO
-	if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_JOYSTICK /*|(Settings.NextAPUEnabled ? SDL_INIT_AUDIO : 0)*/) < 0 )
-#else
-	if (SDL_Init(SDL_INIT_VIDEO /*| (Settings.NextAPUEnabled ? SDL_INIT_AUDIO : 0)*/) < 0 ) 
-#endif
- 	{
-		printf("Could not initialize SDL(%s)\n", SDL_GetError());
-		S9xExit();
-	}
-	atexit(SDL_Quit);
+    atexit(SDL_Quit);
 
-	// No more MOUSE-CURSOR
-	SDL_ShowCursor(SDL_DISABLE);
+    // No more MOUSE-CURSOR
+    SDL_ShowCursor(SDL_DISABLE);
 
 #ifdef PANDORA
-	//screen = SDL_SetVideoMode(xs * blit_scalers [ g_scale ].scale_x, ys * blit_scalers [ g_scale ].scale_y, 16,
-	//			   SDL_SWSURFACE|SDL_FULLSCREEN);
- 	//screen = SDL_SetVideoMode( 800 /* pandora horiz */, 480 /* pandora vert */, 16,
- 	//			   SDL_SWSURFACE|SDL_FULLSCREEN);
-	std::cerr << "setting video mode in S9xInitDisplay, selected mode: " << (std::string) blit_scalers [ g_scale ].desc_en << std::endl;
-	//NOTE: the following block should not be required but is left for "safety reasons"
-	if ( Settings.SupportHiRes && !(blit_scalers [ g_scale ].support_hires) ) 
-	{ 
-		std::cerr << "S9xInitDisplay: mode \"" << (std::string) blit_scalers [ g_scale ].desc_en << "\" not enabled for hires mode!" << std::endl;
-		g_scale = bs_1to2_double;
-	}
-	
-	setenv("SDL_OMAP_LAYER_SIZE",blit_scalers [ g_scale ].layersize,1);
-// 	screen = SDL_SetVideoMode( blit_scalers [ g_scale ].res_x , blit_scalers [ g_scale ].res_y, 16,
-// 				   SDL_DOUBLEBUF|SDL_FULLSCREEN);
-	screen = SDL_SetVideoMode( blit_scalers [ g_scale ].res_x , blit_scalers [ g_scale ].res_y, 16,
-				   SDL_SWSURFACE|SDL_FULLSCREEN);
+    //screen = SDL_SetVideoMode(xs * blit_scalers [ g_scale ].scale_x, ys * blit_scalers [ g_scale ].scale_y, 16,
+    //			   SDL_SWSURFACE|SDL_FULLSCREEN);
+    //screen = SDL_SetVideoMode( 800 /* pandora horiz */, 480 /* pandora vert */, 16,
+    //			   SDL_SWSURFACE|SDL_FULLSCREEN);
+    std::cerr << "setting video mode in S9xInitDisplay, selected mode: " << (std::string) blit_scalers [ g_scale ].desc_en << std::endl;
+    //NOTE: the following block should not be required but is left for "safety reasons"
+    if (Settings.SupportHiRes && !(blit_scalers [ g_scale ].support_hires)) {
+        std::cerr << "S9xInitDisplay: mode \"" << (std::string) blit_scalers [ g_scale ].desc_en << "\" not enabled for hires mode!" << std::endl;
+        g_scale = bs_1to2_double;
+    }
 
-	// for vsync
-	// WARNING! this is used as framelimiter, too! The emulator will run by far
-	// too fast if you remove this next block!
-	// fb1 as well as fb0 seem to work (skeeziz coded it with fb0, but since
-	// fb1 works, too, I will leave it at that for the moment).
-	{
-	  extern int g_fb;
-	  g_fb = open ("/dev/fb1", O_RDONLY /* O_RDWR */ );
-	  if ( g_fb < 0 ) {
-	    fprintf ( stderr, "Couldn't open /dev/fb1 for vsync\n" );
-	  }
-	}
+    setenv("SDL_OMAP_LAYER_SIZE", blit_scalers [ g_scale ].layersize, 1);
+    // 	screen = SDL_SetVideoMode( blit_scalers [ g_scale ].res_x , blit_scalers [ g_scale ].res_y, 16,
+    // 				   SDL_DOUBLEBUF|SDL_FULLSCREEN);
+    screen = SDL_SetVideoMode(blit_scalers [ g_scale ].res_x, blit_scalers [ g_scale ].res_y, 16,
+            SDL_SWSURFACE | SDL_FULLSCREEN);
 
-	// for LCD refresh rate
-	switch ( (int) Memory.ROMFramesPerSecond )
-	{
-		case 60:
-		  fprintf ( stderr, "Assuming 60hz LCD\n" );
-		  break; // nothing to do
-		case 50:
-		  fprintf ( stderr, "Switching to 50hz LCD\n" );
-		  system ( "/usr/bin/sudo -n /usr/pandora/scripts/op_lcdrate.sh 50" );
-		  break;
-		default:
-		  fprintf ( stderr, "Game reports %d hz display; ignoring.\n", (int) Memory.ROMFramesPerSecond );
-		  break;
-	}
+    // for vsync
+    // WARNING! this is used as framelimiter, too! The emulator will run by far
+    // too fast if you remove this next block!
+    // fb1 as well as fb0 seem to work (skeeziz coded it with fb0, but since
+    // fb1 works, too, I will leave it at that for the moment).
+    {
+        extern int g_fb;
+        g_fb = open("/dev/fb1", O_RDONLY /* O_RDWR */);
+        if (g_fb < 0) {
+            fprintf(stderr, "Couldn't open /dev/fb1 for vsync\n");
+        }
+    }
+
+    // for LCD refresh rate
+    switch ((int) Memory.ROMFramesPerSecond) {
+        case 60:
+            fprintf(stderr, "Assuming 60hz LCD\n");
+            break; // nothing to do
+        case 50:
+            fprintf(stderr, "Switching to 50hz LCD\n");
+            system("/usr/bin/sudo -n /usr/pandora/scripts/op_lcdrate.sh 50");
+            break;
+        default:
+            fprintf(stderr, "Game reports %d hz display; ignoring.\n", (int) Memory.ROMFramesPerSecond);
+            break;
+    }
 
 #else //DINGOO //CAANOO
-	screen = SDL_SetVideoMode(xs, ys, 16, SDL_SWSURFACE);	//do no take SDL_HWSURFACE on Dingoo (bad overlays) and CAANOO (flickers)
+    screen = SDL_SetVideoMode(xs, ys, 16, SDL_SWSURFACE); //do no take SDL_HWSURFACE on Dingoo (bad overlays) and CAANOO (flickers)
 #endif
 
-	if (screen == NULL)
-	{
-		printf("Couldn't set video mode: %s\n", SDL_GetError());
-		S9xExit();
-	}
-	
-	if (Settings.SupportHiRes)
-	{
-		gfxscreen = SDL_CreateRGBSurface(SDL_SWSURFACE, 512, 480, 16, 0, 0, 0, 0);
-		GFX.Screen = (uint8 *)gfxscreen->pixels;
-		GFX.Pitch = 512 * 2;
-	}
-	else
-	{
+    if (screen == NULL) {
+        printf("Couldn't set video mode: %s\n", SDL_GetError());
+        S9xExit();
+    }
+
+    if (Settings.SupportHiRes) {
+        gfxscreen = SDL_CreateRGBSurface(SDL_SWSURFACE, 512, 480, 16, 0, 0, 0, 0);
+        GFX.Screen = (uint8 *) gfxscreen->pixels;
+        GFX.Pitch = 512 * 2;
+    } else {
 #ifdef PANDORA
-		if ( g_scale > bs_1to1 )
-		{
-			GFX.Screen = (uint8*) malloc ( ( 512 * 480 * 2 ) + 64 );
-			GFX.Pitch = 320 * 2;
-	    } else {
-	    	GFX.Screen = (uint8 *)screen->pixels + 64;
-	    	GFX.Pitch = 320 * 2;
-	    }
+        if (g_scale > bs_1to1) {
+            GFX.Screen = (uint8*) malloc((512 * 480 * 2) + 64);
+            GFX.Pitch = 320 * 2;
+        } else {
+            GFX.Screen = (uint8 *) screen->pixels + 64;
+            GFX.Pitch = 320 * 2;
+        }
 #else
-		if(Scale)
-		{
-			GFX.Screen = (uint8 *)screen->pixels;
-			GFX.Pitch = 320 * 2;
-		}
-		else
-		{
-			GFX.Screen = (uint8 *)screen->pixels + 64;	//center screen
-			GFX.Pitch = 320 * 2;
-		}
+        if (Scale) {
+            GFX.Screen = (uint8 *) screen->pixels;
+            GFX.Pitch = 320 * 2;
+        } else {
+            GFX.Screen = (uint8 *) screen->pixels + 64; //center screen
+            GFX.Pitch = 320 * 2;
+        }
 #endif
-	}
+    }
 
-	GFX.SubScreen = (uint8 *)malloc(512 * 480 * 2);
-	GFX.ZBuffer = (uint8 *)malloc(512 * 480 * 2);
-	GFX.SubZBuffer = (uint8 *)malloc(512 * 480 * 2);
+    GFX.SubScreen = (uint8 *) malloc(512 * 480 * 2);
+    GFX.ZBuffer = (uint8 *) malloc(512 * 480 * 2);
+    GFX.SubZBuffer = (uint8 *) malloc(512 * 480 * 2);
 }
 
-void S9xDeinitDisplay ()
-{
+void S9xDeinitDisplay() {
 #ifdef PANDORA
     // for vsync
     extern int g_fb;
-    if ( g_fb >= 0 )
-    {
-	  close ( g_fb );
-	}
-	// for LCD refresh
-	system ( "/usr/bin/sudo -n /usr/pandora/scripts/op_lcdrate.sh 60" );
+    if (g_fb >= 0) {
+        close(g_fb);
+    }
+    // for LCD refresh
+    system("/usr/bin/sudo -n /usr/pandora/scripts/op_lcdrate.sh 60");
 #endif
 
-	SDL_FreeSurface(screen);
-	free(GFX.SubScreen);
-	free(GFX.ZBuffer);
-	free(GFX.SubZBuffer);
+    SDL_FreeSurface(screen);
+    free(GFX.SubScreen);
+    free(GFX.ZBuffer);
+    free(GFX.SubZBuffer);
 }
 
-void S9xSetPalette ()
-{
+void S9xSetPalette() {
 }
 
-void S9xSetTitle (const char * /*title*/)
-{
+void S9xSetTitle(const char * /*title*/) {
 }
 
 #ifndef _ZAURUS
-const char *S9xSelectFilename (const char *def, const char *dir1,
-			    const char *ext1, const char *title)
-{
+
+const char *S9xSelectFilename(const char *def, const char *dir1,
+        const char *ext1, const char *title) {
     static char path [PATH_MAX];
     char buffer [PATH_MAX];
-    
-    S9xTextMode ();
-    printf ("\n%s (default: %s): ", title, def);
-    fflush (stdout);
-    
-    if (fgets (buffer, sizeof (buffer) - 1, stdin))
-    {
-		char *p = buffer;
-		while (isspace (*p) || *p == '\n')
-		    p++;
-		if (!*p)
-		{
-		    strcpy (buffer, def);
-		    p = buffer;
-		}
-	
-		char *q = strrchr (p, '\n');
-		if (q)
-		    *q = 0;
-	
-		char fname [PATH_MAX];
-		char drive [_MAX_DRIVE];
-		char dir [_MAX_DIR];
-		char ext [_MAX_EXT];
-	
-		_splitpath (p, drive, dir, fname, ext);
-		_makepath (path, drive, *dir ? dir : dir1, fname, *ext ? ext : ext1);
-		S9xGraphicsMode ();
-		return (path);
+
+    S9xTextMode();
+    printf("\n%s (default: %s): ", title, def);
+    fflush(stdout);
+
+    if (fgets(buffer, sizeof (buffer) - 1, stdin)) {
+        char *p = buffer;
+        while (isspace(*p) || *p == '\n')
+            p++;
+        if (!*p) {
+            strcpy(buffer, def);
+            p = buffer;
+        }
+
+        char *q = strrchr(p, '\n');
+        if (q)
+            *q = 0;
+
+        char fname [PATH_MAX];
+        char drive [_MAX_DRIVE];
+        char dir [_MAX_DIR];
+        char ext [_MAX_EXT];
+
+        _splitpath(p, drive, dir, fname, ext);
+        _makepath(path, drive, *dir ? dir : dir1, fname, *ext ? ext : ext1);
+        S9xGraphicsMode();
+        return (path);
     }
-    
-    S9xGraphicsMode ();
+
+    S9xGraphicsMode();
     return (NULL);
 }
 
-void S9xExtraUsage ()
-{
+void S9xExtraUsage() {
 }
 
-bool8 S9xReadMousePosition (int /* which1 */, int &/* x */, int & /* y */,
-			    uint32 & /* buttons */)
-{
-//	SDL_GetMouseState
+bool8 S9xReadMousePosition(int /* which1 */, int &/* x */, int & /* y */,
+        uint32 & /* buttons */) {
+    //	SDL_GetMouseState
     return (FALSE);
 }
 
-bool8 S9xReadSuperScopePosition (int & /* x */, int & /* y */, 
-				 uint32 & /* buttons */)
-{
+bool8 S9xReadSuperScopePosition(int & /* x */, int & /* y */,
+        uint32 & /* buttons */) {
     return (FALSE);
 }
 #endif
 
-void S9xMessage (int /* type */, int /* number */, const char *message)
-{
-    fprintf (stderr, "%s\n", message);
+void S9xMessage(int /* type */, int /* number */, const char *message) {
+    fprintf(stderr, "%s\n", message);
 }
 #endif
