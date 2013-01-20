@@ -4055,8 +4055,8 @@ $as_echo_n "checking whether g++ accepts -pedantic... " >&6; }
   $as_echo_n "(cached) " >&6
 else
 
-		OLD_CXXFLAGS="$CXXFLAGS"
-		CXXFLAGS="$OLD_CXXFLAGS -pedantic"
+#		OLD_CXXFLAGS="$CXXFLAGS"
+#		CXXFLAGS="$OLD_CXXFLAGS -pedantic"
 
 		if test "$cross_compiling" = yes; then :
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5

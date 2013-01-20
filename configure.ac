@@ -106,10 +106,11 @@ fi
 
 AC_S9X_COMPILER_FLAG([-fno-exceptions],	      [no_exceptions])
 AC_S9X_COMPILER_FLAG([-fno-rtti],             [no_rtti])
-AC_S9X_COMPILER_FLAG([-pedantic],             [pedantic])
+#AC_S9X_COMPILER_FLAG([-pedantic],             [pedantic])
 AC_S9X_COMPILER_FLAG([-Wall],                 [Wall])
 AC_S9X_COMPILER_FLAG([-W],                    [W])
 AC_S9X_COMPILER_FLAG([-Wno-unused-parameter], [Wno_unused_parameter])
+AC_S9X_COMPILER_FLAG([-Wno-unused-parameter], [Wno_variadic_macros])
 
 # Enable debugger.
 
