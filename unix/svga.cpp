@@ -140,7 +140,7 @@ void S9xInitDisplay(int /*argc*/, char ** /*argv*/) {
             break; // nothing to do
         case 50:
             fprintf(stderr, "50hz LCD\n");
-//            system("/usr/bin/sudo -n /usr/pandora/scripts/op_lcdrate.sh 50");
+            //            system("/usr/bin/sudo -n /usr/pandora/scripts/op_lcdrate.sh 50");
             break;
         default:
             fprintf(stderr, "Game reports %d hz display; ignoring.\n", (int) Memory.ROMFramesPerSecond);
@@ -148,11 +148,11 @@ void S9xInitDisplay(int /*argc*/, char ** /*argv*/) {
     }
 
 #else //DINGOO //CAANOO
-    screen = SDL_SetVideoMode(xs, ys, 16, SDL_SWSURFACE); //do no take SDL_HWSURFACE on Dingoo (bad overlays) and CAANOO (flickers)
+    screen = SDL_SetVideoMode(xs, ys, 16, SDL_HWSURFACE); //do no take SDL_HWSURFACE on Dingoo (bad overlays) and CAANOO (flickers)
 #endif
 
     if (screen == NULL) {
-        printf("Couldn't set video mode: %s\n", SDL_GetError());
+        fprintf(stderr, "Couldn't set video mode: %s\n", SDL_GetError());
         S9xExit();
     }
 
