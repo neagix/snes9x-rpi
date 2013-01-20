@@ -257,24 +257,24 @@ int main(int argc, char **argv) {
 
     Settings.JoystickEnabled = FALSE; //unused
     //#ifdef DINGOO
-    Settings.SoundPlaybackRate = 2;
+    //Settings.SoundPlaybackRate = 2;
     //#else
-    //    Settings.SoundPlaybackRate = 5; //default would be '2', use 32000Hz as the genuine hardware does
+        Settings.SoundPlaybackRate = 5; //default would be '2', use 32000Hz as the genuine hardware does
     //#endif
     Settings.Stereo = TRUE;
-    Settings.SoundBufferSize = 512/2; //256 //2048
+    Settings.SoundBufferSize = 512; //256 //2048
     Settings.CyclesPercentage = 100;
     Settings.DisableSoundEcho = FALSE;
     Settings.AltSampleDecode = 0;
     Settings.APUEnabled = Settings.NextAPUEnabled = TRUE;
     Settings.H_Max = SNES_CYCLES_PER_SCANLINE;
-#ifdef PANDORA
-    Settings.SkipFrames = 1;
-    Settings.DisplayFrameRate = FALSE;
-#else
-    Settings.SkipFrames = AUTO_FRAMERATE;
+//#ifdef PANDORA
+//    Settings.SkipFrames = 1;
+//    Settings.DisplayFrameRate = FALSE;
+
+    Settings.SkipFrames = 1; //AUTO_FRAMERATE;
     Settings.DisplayFrameRate = TRUE;
-#endif
+    
     Settings.ShutdownMaster = TRUE;
     Settings.FrameTimePAL = 20000;
     Settings.FrameTimeNTSC = 16667;

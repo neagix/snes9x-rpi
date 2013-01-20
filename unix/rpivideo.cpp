@@ -26,12 +26,12 @@ bool S9xInitVideo() {
     rpi2D = new Raspberry2D(xs, ys);
     
     // vertical ratio
-    float ratio = ((float)rpi2D->DisplayHeight) / rpi2D->Height;
+    float ratio = ((float)rpi2D->DisplayHeight-80) / rpi2D->Height;
     
     float finalW = rpi2D->Width * ratio;
 
     // attach surface
-    if (!rpi2D->Attach(finalW, rpi2D->DisplayHeight)) {
+    if (!rpi2D->Attach(finalW, rpi2D->DisplayHeight-80)) {
         delete rpi2D;
 
         fprintf(stderr, "Could not attach surface\n");

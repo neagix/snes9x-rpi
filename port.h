@@ -127,8 +127,9 @@ typedef void (*SignalHandler)(int);
 #define SIG_PF SignalHandler
 #endif
 
+// little endian
 #define LSB_FIRST
-//#define FAST_LSB_WORD_ACCESS
+#define FAST_LSB_WORD_ACCESS
 
 #ifdef __linux
 #define TITLE "Snes9X: Linux"
