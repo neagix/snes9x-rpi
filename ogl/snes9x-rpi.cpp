@@ -955,7 +955,8 @@ int main (int argc, char **argv)
 #endif
 
 	S9xInitInputDevices();
-	S9xInitDisplay(argc, argv);
+	if (!S9xInitDisplay(argc, argv))
+            exit(2);
 	S9xSetupDefaultKeymap();
 
 #ifdef NETPLAY_SUPPORT
