@@ -1,102 +1,67 @@
 
 #include "port.h"
 #include "gfx.h"
-#include "sdlvideo.h"
+#include "rpivideo.h"
+
+#include "librpi2d/rpi2d.h"
+#include <GLES2/gl2.h>
 
 extern uint32 xs, ys, cl, cs;
-extern bool8_32 Scale;
+//extern bool8_32 Scale;
 
-void *dest_screen_buffer;
+void *dest_screen_buffer = NULL, *gfxscreen = NULL;
+Texture2D *textureBuffer;
+Raspberry2D *rpi2D;
 
-SDL_Surface *screen, *gfxscreen = NULL;
-
-void S9xPerformUpdate(Sint32 x, Sint32 y, Sint32 w, Sint32 h) {
-    SDL_UpdateRect(screen, x, y, w, h);
+void S9xPerformUpdate(int x, int y, int w, int h) {
+    textureBuffer->Render(dest_screen_buffer, 0, y, textureBuffer->Width, h);
+    
+    rpi2D->Draw(*textureBuffer);
+    
+    rpi2D->SwapBuffers();
 }
 
 bool S9xInitVideo() {
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        printf("Unable to initialize SDL: %s\n", SDL_GetError());
-        exit(3);
+    // initialize Raspberry Pi
+    rpi2D = new Raspberry2D(xs, ys);
+    
+    // vertical ratio
+    float ratio = ((float)rpi2D->DisplayHeight) / rpi2D->Height;
+    
+    float finalW = rpi2D->Width * ratio;
+
+    // attach surface
+    if (!rpi2D->Attach(finalW, rpi2D->DisplayHeight)) {
+        delete rpi2D;
+
+        fprintf(stderr, "Could not attach surface\n");
         return false;
     }
 
-    atexit(SDL_Quit);
+    // create the texture
+    textureBuffer = new Texture2D(rpi2D->Width, rpi2D->Height, 2, GL_RGB, GL_UNSIGNED_SHORT_5_6_5);
+    
+    // create the main display surface
+    dest_screen_buffer = malloc(xs * ys * 2);
 
-    // No more MOUSE-CURSOR
-    SDL_ShowCursor(SDL_DISABLE);
-
-#ifdef PANDORA
-    /*
-    //screen = SDL_SetVideoMode(xs * blit_scalers [ g_scale ].scale_x, ys * blit_scalers [ g_scale ].scale_y, 16,
-    //			   SDL_SWSURFACE|SDL_FULLSCREEN);
-    //screen = SDL_SetVideoMode( 800 , 480 , 16,
-    //			   SDL_SWSURFACE|SDL_FULLSCREEN);
-    std::cerr << "setting video mode in S9xInitDisplay, selected mode: " << (std::string) blit_scalers [ g_scale ].desc_en << std::endl;
-    //NOTE: the following block should not be required but is left for "safety reasons"
-    if (Settings.SupportHiRes && !(blit_scalers [ g_scale ].support_hires)) {
-        std::cerr << "S9xInitDisplay: mode \"" << (std::string) blit_scalers [ g_scale ].desc_en << "\" not enabled for hires mode!" << std::endl;
-        g_scale = bs_1to2_double;
-    }
-
-    setenv("SDL_OMAP_LAYER_SIZE", blit_scalers [ g_scale ].layersize, 1);
-    // 	screen = SDL_SetVideoMode( blit_scalers [ g_scale ].res_x , blit_scalers [ g_scale ].res_y, 16,
-    // 				   SDL_DOUBLEBUF|SDL_FULLSCREEN);
-    screen = SDL_SetVideoMode(blit_scalers [ g_scale ].res_x, blit_scalers [ g_scale ].res_y, 16,
-            SDL_SWSURFACE | SDL_FULLSCREEN);
-
-    // for vsync
-    // WARNING! this is used as framelimiter, too! The emulator will run by far
-    // too fast if you remove this next block!
-    // fb1 as well as fb0 seem to work (skeeziz coded it with fb0, but since
-    // fb1 works, too, I will leave it at that for the moment).
-    {
-        extern int g_fb;
-        g_fb = open("/dev/fb1", O_RDONLY );
-        if (g_fb < 0) {
-            fprintf(stderr, "Couldn't open /dev/fb1 for vsync\n");
-        }
-    }
-
-    // for LCD refresh rate
-    switch ((int) Memory.ROMFramesPerSecond) {
-        case 60:
-            fprintf(stderr, "60hz LCD\n");
-            break; // nothing to do
-        case 50:
-            fprintf(stderr, "50hz LCD\n");
-            //            system("/usr/bin/sudo -n /usr/pandora/scripts/op_lcdrate.sh 50");
-            break;
-        default:
-            fprintf(stderr, "Game reports %d hz display; ignoring.\n", (int) Memory.ROMFramesPerSecond);
-            break;
-    }
-     */
-#else //DINGOO //CAANOO
-    // neagix: check SDL flags effect later
-    screen = SDL_SetVideoMode(xs, ys, 16, 0 * SDL_HWSURFACE); //do no take SDL_HWSURFACE on Dingoo (bad overlays) and CAANOO (flickers)
-
-    dest_screen_buffer = screen->pixels;
-#endif
-
-    if (screen == NULL) {
-        fprintf(stderr, "Couldn't set video mode: %s\n", SDL_GetError());
-        return false;
-    }
+    return true;
 }
 
 void S9xEnableHiRes() {
-    printf("Enabling high-resolution");
-    gfxscreen = SDL_CreateRGBSurface(SDL_SWSURFACE, 512, 480, 16, 0, 0, 0, 0);
-    GFX.Screen = (uint8 *) gfxscreen->pixels;
+    printf("Enabling high-resolution\n");
+    gfxscreen = malloc(512*480*2);
+    GFX.Screen = (uint8 *) gfxscreen;
     GFX.Pitch = 512 * 2;
 }
 
 void S9xDeInitVideo() {
+    
+    delete textureBuffer;
+    delete rpi2D;
+    
     // only created for high-res modes
     if (gfxscreen != NULL)
-        SDL_FreeSurface(gfxscreen);
+        free(gfxscreen);
 
-    SDL_FreeSurface(screen);
-    SDL_ShowCursor(SDL_ENABLE);
+    free(dest_screen_buffer);
 }

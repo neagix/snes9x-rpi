@@ -18,6 +18,8 @@ CHEATS=0
 #VIDEOOBJ=   unix/sdlvideo.o
 VIDEOOBJ=   unix/rpivideo.o
 
+EXTRALIBS += -L/opt/vc/lib -Llibrpi2d -lrpi2d -lGLESv2 -lEGL -lpng
+
 ifdef PANDORA
 PANDORADEFS=	-DPANDORA
 PANDORAOBJS=	unix/pandora_scaling/simple_noAA_scaler.o \
@@ -149,11 +151,12 @@ OPTIMISE= -D_ZAURUS -O2 -ffast-math -fstrict-aliasing -fomit-frame-pointer -ftre
 
 CCFLAGS = $(DEFAULT_CFLAGS) -Wno-write-strings $(EXTDBG) $(OPTIMISE) \
 -I. \
+-I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads \
 -Iunzip \
 -Isdl \
 -D__linux \
 $(PANDORADEFS) -DPANDORAKEYS \
--DS9XRPI
+-DS9XRPI \
 -DZLIB \
 -DVAR_CYCLES \
 -DCPU_SHUTDOWN \
