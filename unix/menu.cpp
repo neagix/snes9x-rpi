@@ -8,6 +8,7 @@
 #include "dingoo.h"
 
 #include "snes9x.h"
+#include <sys/stat.h>
 #include "memmap.h"
 #include "cpuexec.h"
 #include "snapshot.h"

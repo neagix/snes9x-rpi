@@ -57,13 +57,20 @@ C4NO_DEPENDS=zsnes_c4
 endif
 
 ifdef CHEATS
-CHEAT=cheats.o cheats2.o
+CHEATS=cheats.o cheats2.o
 else
-CHEAT=
+CHEATS=
 endif
 
 OBJECTS=$(CPUOBJ) $(FXOBJ) $(C4OBJ) \
 	cpu.o tile.o gfx.o clip.o \
+	unix/pandora_scaling/simple_noAA_scaler.o \
+	unix/pandora_scaling/hqx/hq2x_16.o \
+	unix/pandora_scaling/hqx/hqx_init.o \
+	unix/pandora_scaling/scale2x/scalebit.o \
+	unix/pandora_scaling/scale2x/scale2x.o \
+	unix/pandora_scaling/scale2x/scale3x.o \
+	unix/pandora_scaling/scale2x/pixel.o \
 	memmap.o ppu.o dma.o unix/menu.o unix/unix.o \
 	$(SOUNDOBJ) unix/svga.o \
 	sdd1.o sdd1emu.o dsp1.o sa1.o sa1cpu.o obc1.o \
@@ -124,11 +131,12 @@ OPTIMISE= -D_ZAURUS -O2 -ffast-math -fstrict-aliasing -fomit-frame-pointer -ftre
 #-G 0 
 # -fprofile-use -ftest-coverage -fprofile-arcs
 
-CCFLAGS = $(DEFAULT_CFLAGS) $(OPTIMISE) \
+CCFLAGS = $(DEFAULT_CFLAGS) -Wno-write-strings $(OPTIMISE) \
 -I. \
 -Iunzip \
 -Isdl \
 -D__linux \
+-DPANDORA \
 -DZLIB \
 -DVAR_CYCLES \
 -DCPU_SHUTDOWN \
@@ -180,7 +188,7 @@ $(OPENGLDEPENDS):
 	touch $(OPENGLDEPENDS)
 	$(RM) $(OPENGLNO_DEPENDS)
 
-snes9x: $(OBJECTS) 
+snes9x:	$(OBJECTS) 
 	$(CC) $(INCLUDES) -o $@ $(OBJECTS) $(EXTRALIBS) $(LDLIBS) -lstdc++ -lz -lpthread -lm -lgcov
 	$(STRIP) snes9x
 
@@ -221,6 +229,14 @@ release: clean all
 
 ppu.o: $(FXDEPENDS)
 cpu.o: $(FXDEPENDS)
+unix/pandora_scaling/simple_noAA_scaler.o: $(FXDEPENDS)
+unix/pandora_scaling/hqx/hq2x_16.o: $(FXDEPENDS)
+unix/pandora_scaling/hqx/hqx_init.o: $(FXDEPENDS)
+unix/pandora_scaling/scale2x/scalebit.o: $(FXDEPENDS)
+unix/pandora_scaling/scale2x/scale2x.o: $(FXDEPENDS)
+unix/pandora_scaling/scale2x/scale3x.o: $(FXDEPENDS)
+unix/pandora_scaling/scale2x/pixel.o: $(FXDEPENDS)
+
 memmap.o: $(FXDEPENDS)
 globals.o: $(FXDEPENDS)
 i386/cpuexec.o: $(FXDEPENDS)
