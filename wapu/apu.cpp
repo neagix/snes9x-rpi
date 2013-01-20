@@ -1245,7 +1245,7 @@ void S9xAPUExecute(void) {
             spc::remainder = S9xAPUGetClockRemainder(CPU.Cycles); */
 
     if (CPU.APU_Cycles <= CPU.Cycles) {
-        printf("Running %d missing APU cycles", CPU.Cycles - CPU.APU_Cycles);
+//        printf("Running %d missing APU cycles", CPU.Cycles - CPU.APU_Cycles);
         int cycles = CPU.Cycles - CPU.APU_Cycles;
         CPU.APU_Cycles += cycles - spc700_execute(cycles);
     }
