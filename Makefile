@@ -9,11 +9,14 @@ UNZIP=1
 
 ## neagix: try with and without
 THREAD_SOUND=1
-CHEATS=1
+CHEATS=0
 #ASMKREED=1
 #ZSNESC4=1
 
 #PANDORA=1
+
+#VIDEOOBJ=   unix/sdlvideo.o
+VIDEOOBJ=   unix/rpivideo.o
 
 ifdef PANDORA
 PANDORADEFS=	-DPANDORA
@@ -88,6 +91,7 @@ OBJECTS=$(CPUOBJ) $(FXOBJ) $(C4OBJ) \
 	$(PANDORAOBJS) \
 	memmap.o ppu.o dma.o unix/menu.o unix/unix.o \
 	$(SOUNDOBJ) unix/svga.o \
+	$(VIDEOOBJ) \
 	sdd1.o sdd1emu.o dsp1.o sa1.o sa1cpu.o obc1.o \
     snes9x.o snapshot.o data.o globals.o \
 	$(KREEDOBJ) $(CHEATS)
@@ -137,7 +141,7 @@ INCLUDES=
 ##neagix: to be discarded in stable release
 ##neagix: also: strip should be re-enabled in release
 #EXTDBG=	-g3 -gdwarf-2
-EXTDBG=
+EXTDBG=-g
 
 OPTIMISE= -D_ZAURUS -O2 -ffast-math -fstrict-aliasing -fomit-frame-pointer -ftree-vectorize -funroll-all-loops -fpeel-loops -ftracer -funswitch-loops -finline-functions
 #-G 0 
@@ -148,7 +152,8 @@ CCFLAGS = $(DEFAULT_CFLAGS) -Wno-write-strings $(EXTDBG) $(OPTIMISE) \
 -Iunzip \
 -Isdl \
 -D__linux \
-$(PANDORADEFS) \
+$(PANDORADEFS) -DPANDORAKEYS \
+-DS9XRPI
 -DZLIB \
 -DVAR_CYCLES \
 -DCPU_SHUTDOWN \

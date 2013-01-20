@@ -112,6 +112,8 @@ pthread_mutex_t mutex;
 
 #include "unix/extra_defines.h"
 
+#include "sdlvideo.h"
+
 #ifdef PANDORA
 #include "pandora_scaling/blitscale.h"
 blit_scaler_option_t blit_scalers[] = {
@@ -166,8 +168,8 @@ static int mixerdev = 0;
 clock_t start;
 
 int OldSkipFrame;
-void InitTimer();
-void *S9xProcessSound(void *);
+//void InitTimer();
+//void *S9xProcessSound(void *);
 void OutOfMemory();
 
 #ifdef DINGOO
@@ -176,7 +178,8 @@ void gp2x_sound_volume(int l, int r);
 
 extern void S9xDisplayFrameRate(uint8 *, uint32);
 extern void S9xDisplayString(const char *string, uint8 *, uint32, int);
-extern SDL_Surface *screen, *gfxscreen;
+
+extern void *dest_screen_buffer;
 
 static uint32 ffc = 0;
 uint32 xs = 320; //width
@@ -319,7 +322,7 @@ int main(int argc, char **argv) {
         OutOfMemory();
     }
 
-    (void) S9xInitSound(Settings.SoundPlaybackRate, Settings.Stereo, Settings.SoundBufferSize);
+    S9xInitSound(Settings.SoundPlaybackRate, Settings.Stereo, Settings.SoundBufferSize);
 
     if (!Settings.APUEnabled)
         S9xSetSoundMute(TRUE);
@@ -516,7 +519,7 @@ int main(int argc, char **argv) {
     //Handheld Key Infos
 #ifdef CAANOO
     sprintf(msg, "Press HOME to Show MENU");
-#elif PANDORA
+#elif PANDORAKEYS
     sprintf(msg, "Press SPACEBAR to Show MENU");
 #elif CYGWIN32
     sprintf(msg, "Press ESC+LALT to Show MENU");
@@ -543,7 +546,10 @@ int main(int argc, char **argv) {
     uint32 JoypadSkip = 0;
 #endif
 
-    InitTimer();
+    // mutex we will use to synchronize sound generation&playback
+            pthread_mutex_init(&mutex, NULL);
+
+    //InitTimer();
     S9xSetSoundMute(FALSE);
 
 #ifdef NETPLAY_SUPPORT
@@ -670,7 +676,8 @@ void S9xExit() {
         std::cerr << "could not open file for saving rom preferences!" << std::endl;
 #endif
 
-    S9xSetSoundMute(true);
+    SDL_PauseAudio(0);
+    S9xSetSoundMute(true);    
 
     // neagix: disabled
 /*#ifdef USE_THREADS
@@ -686,15 +693,16 @@ void S9xExit() {
         S9xNPDisconnect();
 #endif
 
-    Memory.SaveSRAM(S9xGetFilename(".srm"));
+    // neagix: temporarily disabled
+//    Memory.SaveSRAM(S9xGetFilename(".srm"));
     //    S9xSaveCheatFile (S9xGetFilename (".cht")); // not needed for embedded devices
 
     Memory.Deinit();
     S9xDeinitAPU();
     S9xDeinitDisplay();
-
-    SDL_ShowCursor(SDL_ENABLE);
-    SDL_Quit();
+  
+    // already hooked
+//    SDL_Quit();
 
     exit(0);
 }
@@ -726,7 +734,7 @@ void S9xInitInputDevices() {
     sfc_key[DOWN_1] = CAANOO_BUTTON_DOWN;
 
     sfc_key[QUIT] = CAANOO_BUTTON_HOME;
-#elif PANDORA
+#elif PANDORAKEYS
     // Pandora mapping
     sfc_key[A_1] = SDLK_END; //DINGOO_BUTTON_A; A = B
     sfc_key[B_1] = SDLK_PAGEDOWN; //DINGOO_BUTTON_B; B = X
@@ -939,200 +947,10 @@ bool8_32 S9xInitUpdate() {
 
 //		uint32 xs = 320, ys = 240, cl = 0, cs = 0, mfs = 10;
 #ifdef PANDORA
-
-bool8_32 S9xDeinitUpdate(int Width, int Height) {
-    //fprintf (stderr, "width: %d, height: %d\n", Width, Height);
-    //std::cerr << "current size: " << screen -> w << "x" << screen -> h << std::endl;
-
-    uint16 source_panewidth = 320; // LoRes games are rendered into a 320 wide SDL screen
-    if (Settings.SupportHiRes)
-        source_panewidth = 512; // HiRes games are rendered into a 512 wide SDL screen
-
-    // the following two vars are used with the non HW scalers as well as when displaying text overlay
-    uint16 widescreen_center_x = 0;
-    uint16 widescreen_center_y = 0;
-
-    SDL_LockSurface(screen);
-
-    if (blit_scalers [ g_scale ].hw_fullscreen) {
-        if ((screen->w != Width) || (screen->h != Height)) {
-            //std::cerr << "resetting video mode in S9xDeinitUpdate:v2"<< std::endl;
-            //set sdl layersize environment variable
-            setenv("SDL_OMAP_LAYER_SIZE", blit_scalers [ g_scale ].layersize, 1);
-
-            //set sdl bordercut environment variable
-            char cutborders[20];
-            sprintf(cutborders, "%d,%d,%d,%d", cut_left, cut_right, cut_top, cut_bottom);
-            setenv("SDL_OMAP_BORDER_CUT", cutborders, 1);
-
-            // 			screen = SDL_SetVideoMode( Width , Height, 16,
-            // 					SDL_DOUBLEBUF|SDL_FULLSCREEN);
-
-            screen = SDL_SetVideoMode(Width, Height, 16,
-                    SDL_SWSURFACE | SDL_FULLSCREEN);
-        }
-
-        render_x_single_xy((uint16*) (screen -> pixels) /*destination_pointer_address*/,
-                (screen -> pitch) >> 1 /*screen_pitch_half*/,
-                (uint16*) (GFX.Screen), source_panewidth, Width, Height);
-    } else {
-        //NOTE: This block should no longer be required since only valid modes
-        //      are allowed to be selected when changing the display mode.
-        //if ( ( screen->w != blit_scalers [ g_scale ].res_x ) || ( screen->h != blit_scalers [ g_scale ].res_y ) )
-        //{
-        //	std::cerr << "resetting video mode in S9xDeinitUpdate:v3"<< std::endl;
-        //	setenv("SDL_OMAP_LAYER_SIZE",blit_scalers [ g_scale ].layersize,1);
-        //	screen = SDL_SetVideoMode( blit_scalers [ g_scale ].res_x , blit_scalers [ g_scale ].res_y, 16,
-        //			SDL_SWSURFACE|SDL_FULLSCREEN);
-        //}
-
-        // get the pitch only once...
-        // pitch is in 1b increments, so is 2* what you think!
-        uint16 screen_pitch_half = (screen -> pitch) >> 1;
-
-        //pointer to the screen
-        uint16* screen_pixels = (uint16*) (screen -> pixels);
-
-        // this line for centering in Y direction always assumes that Height<=240 and double scaling in Y is wanted (interlacing!)
-        // screen_pitch_half * (480-(Heigth*2))/2; due to shifting no "div by zero" not possible
-        // heigth is usually 224, 239 or 240!
-        widescreen_center_y = (480 - (Height << 1)) >> 1;
-        uint16 widescreen_center_y_fb = widescreen_center_y * screen_pitch_half;
-        // destination pointer address: pointer to screen_pixels plus moving for centering
-        uint16* destination_pointer_address;
-
-
-        switch (g_scale) {
-            case bs_1to2_double:
-                // the pandora screen has a width of 800px, so everything above should be handled differently
-                // only some scenes in hires roms use 512px width, otherwise the max is 320px in the menu!
-                // hires modules themselves come with two modes, one with 512 width, one with 256
-                if (Width > 400) {
-                    widescreen_center_x = (800 - Width) >> 1; // ( screen -> w - Width ) / 2
-                    destination_pointer_address = screen_pixels + widescreen_center_x + widescreen_center_y_fb;
-
-                    render_x_single(destination_pointer_address, screen_pitch_half,
-                            (uint16*) (GFX.Screen), source_panewidth, Width, Height);
-                } else {
-                    widescreen_center_x = (800 - (Width << 1)) >> 1; // ( screen -> w - ( Width * 2 ) ) / 2
-                    // destination pointer address: pointer to screen_pixels plus moving for centering
-                    destination_pointer_address = screen_pixels + widescreen_center_x + widescreen_center_y_fb;
-
-                    render_x_double(destination_pointer_address, screen_pitch_half,
-                            (uint16*) (GFX.Screen), source_panewidth, Width, Height);
-                }
-                break;
-            case bs_1to32_multiplied:
-                widescreen_center_x = 16; // screen -> w - 3*Width // 800-3*Width
-                // destination pointer address: pointer to screen_pixels plus moving for centering
-                destination_pointer_address = screen_pixels + 16 + widescreen_center_y_fb;
-
-                // the pandora screen has a width of 800px, so everything above should be handled differently
-                // only some scenes in hires roms use 512px width, otherwise the max is 320px in the menu!
-                // hires modules themselves come with two modes, one with 512 width, one with 256
-                if (Width > 400) {
-                    render_x_oneandhalf(destination_pointer_address, screen_pitch_half,
-                            (uint16*) (GFX.Screen), source_panewidth, Width, Height);
-                } else {
-                    if (Width > 266) //crash in hardware mode if Width is too high... 266*3 < 800
-                        Width = 256;
-                    render_x_triple(destination_pointer_address, screen_pitch_half,
-                            (uint16*) (GFX.Screen), source_panewidth, Width, Height);
-                }
-                break;
-            case bs_1to2_smooth:
-                widescreen_center_x = (800 - (Width << 1)) >> 1; // ( screen -> w - ( Width * 2 ) ) / 2
-                hq2x_16((uint16*) (GFX.Screen), screen_pixels, Width, Height, screen->w, screen->h);
-                break;
-            case bs_1to2_scale2x:
-                widescreen_center_x = (800 - (Width << 1)) >> 1; // ( screen -> w - ( Width * 2 ) ) / 2
-                destination_pointer_address = screen_pixels + widescreen_center_x + widescreen_center_y_fb;
-
-                scale(2, (uint16*) destination_pointer_address, screen->w * 2, (uint16*) GFX.Screen, 320 * 2, 2, Width, Height);
-                break;
-            default:
-                // code error; unknown scaler
-                fprintf(stderr, "invalid scaler option handed to render code; fix me!\n");
-                exit(0);
-        }
-    }
-
-
-    //The part below is the version that should be used when you want scanline support.
-    //if you don't want scanlines, the other system should be faster.
-    // 		for (register uint16 i = 0; i < Height; ++i) {
-    // 			// first scanline of doubled pair
-    // 			register uint16 *dp16 = destination_pointer_address + ( i * screen_pitch );
-    // 			
-    // 			register uint16 *sp16 = (uint16*)(GFX.Screen);
-    // 			sp16 += ( i * 320 );
-    // 			
-    // 			for (register uint16 j = 0; j < Width /*256*/; ++j, ++sp16) {
-    // 				*dp16++ = *sp16;
-    // 				*dp16++ = *sp16; // doubled
-    // 			}
-    // 			
-    // 			if ( ! g_scanline ) {
-    // 				// second scanline of doubled pair
-    // 				dp16 = destination_pointer_address + ( i * screen_pitch ) + screen_pitch_half;
-    // 				
-    // 				sp16 = (uint16*)(GFX.Screen);
-    // 				sp16 += ( i * 320 );
-    // 				for (register uint16 j = 0; j < Width /*256*/; ++j, ++sp16) {
-    // 					*dp16++ = *sp16;
-    // 					*dp16++ = *sp16; // doubled
-    // 				}
-    // 			} // scanline
-    // 		} // for each height unit
-
-    if (Settings.DisplayFrameRate) {
-        //S9xDisplayFrameRate ((uint8 *)screen->pixels + 64, 800 * 2 * 2 );
-
-        widescreen_center_x = widescreen_center_x << 1; // the pitch has to be taken into account here, so double the values!
-
-        uint8* temp_pointer = (uint8 *) screen->pixels
-                + 16
-                + widescreen_center_x // move to the right if we are in "non hw scaling mode"
-                + (screen->h - font_height - 1 - widescreen_center_y) * (screen -> pitch);
-        S9xDisplayFrameRate(temp_pointer, (screen -> pitch));
-    }
-
-    //display the info string above the possibly active framerate display
-    if (GFX.InfoString) {
-        //S9xDisplayString (GFX.InfoString, (uint8 *)screen->pixels + 64, 800 * 2 * 2, 240 );
-
-        if (!Settings.DisplayFrameRate) // only take the pitch into account if this was not done before!
-            widescreen_center_x = widescreen_center_x << 1; // the pitch has to be taken into account here, so double the values!
-
-        uint16 string_x_startpos = 14 // 2px indention applied by function, resulting in the same 16 as with the framerate counter
-                + (font_width - 1) * sizeof (uint16) // framerate counter starts with empty char, so move to the right by one
-                + widescreen_center_x; // move to the right if we are in "non hw scaling mode"
-
-        S9xDisplayString(GFX.InfoString,
-                (uint8 *) screen->pixels + string_x_startpos,
-                (screen -> pitch),
-                screen->h + font_height * 3 - 2 - widescreen_center_y); // "font_height * 3 - 2" to place it in the line above the framerate counter
-    }
-
-    SDL_UnlockSurface(screen);
-
-    // vsync
-    if (g_vsync && g_fb >= 0) {
-        int arg = 0;
-        ioctl(g_fb, FBIO_WAITFORVSYNC, &arg);
-    }
-
-    // update the actual screen
-    //SDL_UpdateRect(screen,0,0,0,0);
-    // The following line only makes "real" sense if in doublebuffering mode.
-    // this is currently not working as nicely as it could/should, so not
-    // activating it. While in a swsurface this just behaves the same as a plain
-    // SDL_UpdateRect(screen,0,0,0,0);
-    SDL_Flip(screen);
-
-    return (TRUE);
-}
+#include "pandoraRender.inc.cpp"
 #else
+
+// everything else non-pandora
 
 bool8_32 S9xDeinitUpdate(int Width, int Height) {
     //printf("Width=%d, Height=%d\n",Width,Height);
@@ -1146,7 +964,7 @@ bool8_32 S9xDeinitUpdate(int Width, int Height) {
         if (Width > 256) {
             //Wenn SupportHiRes activ und HighRes Frame
             for (register uint32 i = 0; i < Height; i++) {
-                register uint16 *dp16 = (uint16 *) (screen->pixels) + ((i + cl) * xs) + lp;
+                register uint16 *dp16 = (uint16 *) (dest_screen_buffer) + ((i + cl) * xs) + lp;
                 register uint32 *sp32 = (uint32 *) (GFX.Screen) + (i << 8) + cs;
                 for (register uint32 j = 0; j < 256; j++) {
                     *dp16++ = *sp32++;
@@ -1155,7 +973,7 @@ bool8_32 S9xDeinitUpdate(int Width, int Height) {
         } else {
             //Wenn SupportHiRes activ aber kein HighRes Frame
             for (register uint32 i = 0; i < Height; i++) {
-                register uint32 *dp32 = (uint32 *) (screen->pixels) + ((i + cl) * xs / 2) + lp;
+                register uint32 *dp32 = (uint32 *) (dest_screen_buffer) + ((i + cl) * xs / 2) + lp;
                 register uint32 *sp32 = (uint32 *) (GFX.Screen) + (i << 8) + cs;
                 for (register uint32 j = 0; j < 128; j++) {
                     *dp32++ = *sp32++;
@@ -1164,11 +982,11 @@ bool8_32 S9xDeinitUpdate(int Width, int Height) {
         }
 
         if (GFX.InfoString)
-            S9xDisplayString(GFX.InfoString, (uint8 *) screen->pixels + 64, 640, 0);
+            S9xDisplayString(GFX.InfoString, (uint8 *) dest_screen_buffer + 64, 640, 0);
         else if (Settings.DisplayFrameRate)
-            S9xDisplayFrameRate((uint8 *) screen->pixels + 64, 640);
+            S9xDisplayFrameRate((uint8 *) dest_screen_buffer + 64, 640);
 
-        SDL_UpdateRect(screen, 32, 0, 256, Height);
+        S9xPerformUpdate(32, 0, 256, Height);
     } else {
         // if scaling for non-highres (is centered)
         if (Scale) {
@@ -1202,22 +1020,22 @@ bool8_32 S9xDeinitUpdate(int Width, int Height) {
                 }
             }
             if (GFX.InfoString)
-                S9xDisplayString(GFX.InfoString, (uint8 *) screen->pixels + 64, 640, 0);
+                S9xDisplayString(GFX.InfoString, (uint8 *) dest_screen_buffer + 64, 640, 0);
             else if (Settings.DisplayFrameRate)
-                S9xDisplayFrameRate((uint8 *) screen->pixels + 64, 640);
+                S9xDisplayFrameRate((uint8 *) dest_screen_buffer + 64, 640);
 
-            SDL_UpdateRect(screen, 0, yoffset, 320, Height);
+            S9xPerformUpdate(0, yoffset, 320, Height);
         } else {
             //center ypos if ysize is only 224px
             //			int yoffset = 8*(Height == 224);
 
             if (GFX.InfoString)
-                S9xDisplayString(GFX.InfoString, (uint8 *) screen->pixels + 64, 640, 0);
+                S9xDisplayString(GFX.InfoString, (uint8 *) dest_screen_buffer + 64, 640, 0);
             else if (Settings.DisplayFrameRate)
-                S9xDisplayFrameRate((uint8 *) screen->pixels + 64, 640);
+                S9xDisplayFrameRate((uint8 *) dest_screen_buffer + 64, 640);
 
             //		    SDL_UpdateRect(screen,0,yoffset,320,Height);
-            SDL_UpdateRect(screen, 32, 0, 256, Height);
+            S9xPerformUpdate(32, 0, 256, Height);
         }
     }
 
@@ -1296,13 +1114,13 @@ void S9xToggleSoundChannel(int c) {
 }
 #endif
 
-static void SoundTrigger() {
+/*static void SoundTrigger() {
     // neagix: this should be checked
     if (Settings.APUEnabled && !so.mute_sound)
         S9xProcessSound(NULL);
-}
+}*/
 
-void StopTimer() {
+/*void StopTimer() {
     struct itimerval timeout;
 
     timeout.it_interval.tv_sec = 0;
@@ -1321,7 +1139,7 @@ void InitTimer() {
 #ifdef USE_THREADS
     if (Settings.ThreadSound) {
         pthread_mutex_init(&mutex, NULL);
-//        pthread_create(&thread, NULL, S9xProcessSound, NULL);
+        pthread_create(&thread, NULL, S9xProcessSound, NULL);
         return;
     }
 #endif
@@ -1335,7 +1153,7 @@ void InitTimer() {
 #endif
 
     sigemptyset(&sa.sa_mask);
-    sigaction(SIGALRM, &sa, NULL);
+    sigaction(SIGALRM, &sa, NULL); 
 
     timeout.it_interval.tv_sec = 0;
     timeout.it_interval.tv_usec = 10000;
@@ -1343,7 +1161,7 @@ void InitTimer() {
     timeout.it_value.tv_usec = 10000;
     if (setitimer(ITIMER_REAL, &timeout, NULL) < 0)
         perror("setitimer");
-}
+}*/
 
 void S9xSyncSpeed() {
 #ifdef NETPLAY_SUPPORT
@@ -1636,26 +1454,26 @@ static volatile bool8 block_generate_sound = FALSE;
 // signal set by ProcessSound and read by CPU syncsound call (no more used)
 //static volatile bool8 pending_signal = FALSE;
 
-SDL_AudioSpec *audiospec;
-
 static void sdl_audio_callback(void *userdata, Uint8 *stream, int len) {
     //#ifdef USE_THREADS
     //    if (Settings.ThreadSound) {
     if (block_generate_sound || pthread_mutex_trylock(&mutex))
         return;
-        block_generate_sound = TRUE;
+    block_generate_sound = TRUE;
     //#endif
 
     SDL_LockAudio();
     S9xMixSamples(stream, len >> (Settings.SixteenBitSound ? 1 : 0));
     SDL_UnlockAudio();
-    
+
     block_generate_sound = FALSE;
     //#ifdef USE_THREADS
     //    if (Settings.ThreadSound)
     pthread_mutex_unlock(&mutex);
     //#endif    
 }
+
+// neagix: might be used in place of pending_signal logic
 
 /*
 static void samples_available(void *data) {
@@ -1666,9 +1484,6 @@ static void samples_available(void *data) {
 
 bool8_32 S9xOpenSoundDevice(int mode, bool8_32 stereo, int buffer_size) {
     SDL_InitSubSystem(SDL_INIT_AUDIO);
-
-    // neagix: TODO: release this
-    audiospec = (SDL_AudioSpec *) malloc(sizeof (SDL_AudioSpec));
 
     so.sixteen_bit = TRUE;
     so.stereo = stereo;
@@ -1688,22 +1503,20 @@ bool8_32 S9xOpenSoundDevice(int mode, bool8_32 stereo, int buffer_size) {
     if (so.stereo)
         buffer_size *= 2; */
 
-    audiospec->freq = so.playback_rate;
-    audiospec->channels = so.stereo ? 2 : 1;
-    audiospec->format = so.sixteen_bit ? AUDIO_S16SYS : AUDIO_U8;
-    audiospec->samples = (buffer_size * audiospec->freq / 1000) >> 1;
-    audiospec->callback = sdl_audio_callback;
+    SDL_AudioSpec audiospec;
+    audiospec.freq = so.playback_rate;
+    audiospec.channels = so.stereo ? 2 : 1;
+    audiospec.format = so.sixteen_bit ? AUDIO_S16SYS : AUDIO_U8;
+    audiospec.samples = (buffer_size * audiospec.freq / 1000) >> 1;
+    audiospec.callback = sdl_audio_callback;
 
     printf("SDL sound driver initializing...\n");
     printf("    --> (Frequency: %dhz, Latency: %dms)...",
-            audiospec->freq,
-            (audiospec->samples * 1000 / audiospec->freq) << 1);
+            audiospec.freq,
+            (audiospec.samples * 1000 / audiospec.freq) << 1);
 
-    if (SDL_OpenAudio(audiospec, NULL) < 0) {
+    if (SDL_OpenAudio(&audiospec, NULL) < 0) {
         printf("Failed\n");
-
-        free(audiospec);
-        audiospec = NULL;
 
         return FALSE;
     }
@@ -1797,12 +1610,12 @@ void S9xGenerateSound() {
         if (bytes_so_far >= so.buffer_size)
         return;
 
-//#ifdef USE_THREADS
+    //#ifdef USE_THREADS
     if (Settings.ThreadSound) {
         if (block_generate_sound || pthread_mutex_trylock(&mutex))
             return;
     }
-//#endif
+    //#endif
 
     block_signal = TRUE;
 
@@ -1848,17 +1661,17 @@ void S9xGenerateSound() {
     }
     block_signal = FALSE;
 
-//#ifdef USE_THREADS
+    //#ifdef USE_THREADS
     if (Settings.ThreadSound)
         pthread_mutex_unlock(&mutex);
-//    else
-//#endif
-        
-        // neagix: this is always false because block_signal setting is disabled
-/*        if (pending_signal) {
-        S9xProcessSound(NULL);
-        pending_signal = FALSE;
-    } */
+    //    else
+    //#endif
+
+    // neagix: this is always false because block_signal setting is disabled
+    /*        if (pending_signal) {
+            S9xProcessSound(NULL);
+            pending_signal = FALSE;
+        } */
 }
 
 // neagix: this is like the SDL sound callback
