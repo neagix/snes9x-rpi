@@ -136,11 +136,11 @@ void S9xInitDisplay(int /*argc*/, char ** /*argv*/) {
     // for LCD refresh rate
     switch ((int) Memory.ROMFramesPerSecond) {
         case 60:
-            fprintf(stderr, "Assuming 60hz LCD\n");
+            fprintf(stderr, "60hz LCD\n");
             break; // nothing to do
         case 50:
-            fprintf(stderr, "Switching to 50hz LCD\n");
-            system("/usr/bin/sudo -n /usr/pandora/scripts/op_lcdrate.sh 50");
+            fprintf(stderr, "50hz LCD\n");
+//            system("/usr/bin/sudo -n /usr/pandora/scripts/op_lcdrate.sh 50");
             break;
         default:
             fprintf(stderr, "Game reports %d hz display; ignoring.\n", (int) Memory.ROMFramesPerSecond);

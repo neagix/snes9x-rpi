@@ -27,6 +27,11 @@ extern blit_scaler_e g_scale;
 extern unsigned char g_vsync;
 extern SDL_Surface *screen, *gfxscreen;
 extern int cut_top, cut_bottom, cut_left, cut_right;
+#else
+#define cut_top 0
+#define cut_bottom 0
+#define cut_left 0
+#define cut_right 0
 #endif
 
 extern Uint16 sfc_key[256];
@@ -454,6 +459,7 @@ void menu_loop(void) {
                         }
                         break;
                     case 10: // rotate through scalers
+#ifdef  PANDORA
                         if (keyssnes[sfc_key[RIGHT_1]] == SDL_PRESSED) {
                             do {
                                 g_scale = (blit_scaler_e) ((g_scale + 1) % bs_max);
@@ -469,6 +475,9 @@ void menu_loop(void) {
                         // now force update the display, so that the new scaler is directly used (fixes some glitches)
                         S9xDeinitDisplay();
                         S9xInitDisplay(0, 0);
+#else
+                        fprintf(stderr, "Cannot rotate through scalers\n");
+#endif
                         break;
                     case 11: // set frameskip
                         if (Settings.SkipFrames == AUTO_FRAMERATE)
@@ -485,10 +494,14 @@ void menu_loop(void) {
                             Settings.SkipFrames = 1;
                         break;
                     case 12: // set vsync
+#ifdef     PANDORA
                         if (g_vsync)
                             g_vsync = 0;
                         else
                             g_vsync = 1;
+#else
+                        fprintf(stderr, "Cannot change vsync\n");
+#endif
                         break;
                     case 13: // set display fps
                         Settings.DisplayFrameRate = !Settings.DisplayFrameRate;
@@ -496,7 +509,9 @@ void menu_loop(void) {
                     case 14: // set transparency
                         Settings.Transparency = !Settings.Transparency;
                         break;
+#ifdef  PANDORA
                     case 15: // cut lines from top
+
                         if (keyssnes[sfc_key[RIGHT_1]] == SDL_PRESSED)
                             cut_top++;
                         else if (keyssnes[sfc_key[LEFT_1]] == SDL_PRESSED && cut_top > 0)
@@ -504,6 +519,7 @@ void menu_loop(void) {
                         // now force update the display, so that the new scaler is directly used (fixes some glitches)
                         S9xDeinitDisplay();
                         S9xInitDisplay(0, 0);
+
                         break;
                     case 16: // cut lines from bottom
                         if (keyssnes[sfc_key[RIGHT_1]] == SDL_PRESSED)
@@ -529,6 +545,7 @@ void menu_loop(void) {
                         S9xDeinitDisplay();
                         S9xInitDisplay(0, 0);
                         break;
+#endif
                     case 20:
                         //offer an option to change to alternative sample decoding
                         //cf. http://www.gp32x.com/board/index.php?/topic/55378-snes9x4d4p-another-new-build-now-with-hi-res-and-new-rom-picker/page__view__findpost__p__958860

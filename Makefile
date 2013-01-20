@@ -1,14 +1,35 @@
 #ZSNES_FX=1
 #ASMCPU=1
+
+## neagix: this might be worth a try
 #SPC700ASM=1
 NETPLAY=1
 UNZIP=1
 #GLIDE=1
-#OPENGL=1
+
+## neagix: try with and without
 THREAD_SOUND=1
 CHEATS=1
 #ASMKREED=1
 #ZSNESC4=1
+
+#PANDORA=1
+
+ifdef PANDORA
+PANDORADEFS=	-DPANDORA
+PANDORAOBJS=	unix/pandora_scaling/simple_noAA_scaler.o \
+	unix/pandora_scaling/hqx/hq2x_16.o \
+	unix/pandora_scaling/hqx/hqx_init.o \
+	unix/pandora_scaling/scale2x/scalebit.o \
+	unix/pandora_scaling/scale2x/scale2x.o \
+	unix/pandora_scaling/scale2x/scale3x.o \
+	unix/pandora_scaling/scale2x/pixel.o \
+
+else
+PANDORADEFS=
+PANDORAOBJS=
+endif
+
 
 ifdef ZSNESFX
 FXOBJ=i386/fxemu2b.o i386/fxemu2.o i386/fxemu2c.o i386/fxtable.o i386/sfxproc.o i386/zsnes.o
@@ -64,13 +85,7 @@ endif
 
 OBJECTS=$(CPUOBJ) $(FXOBJ) $(C4OBJ) \
 	cpu.o tile.o gfx.o clip.o \
-	unix/pandora_scaling/simple_noAA_scaler.o \
-	unix/pandora_scaling/hqx/hq2x_16.o \
-	unix/pandora_scaling/hqx/hqx_init.o \
-	unix/pandora_scaling/scale2x/scalebit.o \
-	unix/pandora_scaling/scale2x/scale2x.o \
-	unix/pandora_scaling/scale2x/scale3x.o \
-	unix/pandora_scaling/scale2x/pixel.o \
+	$(PANDORAOBJS) \
 	memmap.o ppu.o dma.o unix/menu.o unix/unix.o \
 	$(SOUNDOBJ) unix/svga.o \
 	sdd1.o sdd1emu.o dsp1.o sa1.o sa1cpu.o obc1.o \
@@ -105,16 +120,8 @@ GLIDEDEPENDS=no_glide
 GLIDENO_DEPENDS=use_glide
 endif
 
-ifdef OPENGL
-OPENGLOBJS = unix/opengl.o
-OPENGLDEFINES = -DUSE_OPENGL
-OPENGLLIBS = -lGL -lGLU -ldl
-OPENGLDEPENDS=use_opengl
-OPENGLNO_DEPENDS=no_opengl
-else
 OPENGLDEPENDS=no_opengl
 OPENGLNO_DEPENDS=use_opengl
-endif
 
 CCC		= g++
 CC		= gcc
@@ -136,7 +143,7 @@ CCFLAGS = $(DEFAULT_CFLAGS) -Wno-write-strings $(OPTIMISE) \
 -Iunzip \
 -Isdl \
 -D__linux \
--DPANDORA \
+$(PANDORADEFS) \
 -DZLIB \
 -DVAR_CYCLES \
 -DCPU_SHUTDOWN \
