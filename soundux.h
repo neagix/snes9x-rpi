@@ -104,7 +104,7 @@ enum { MODE_NONE = SOUND_SILENT, MODE_ADSR, MODE_RELEASE = SOUND_RELEASE,
 #endif /* __sgi */
 
 typedef struct {
-    int sound_fd;
+//    int sound_fd;
     int sound_switch;
     int playback_rate;
     int buffer_size;

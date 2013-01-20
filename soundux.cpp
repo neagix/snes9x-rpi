@@ -177,7 +177,7 @@ void S9xSetEnvRate(Channel *ch, unsigned long rate, int direction, int target) {
     } else
         ch->direction = direction;
 
-    static int steps [] ={
+    static int steps [] = {
         //	0, 64, 1238, 1238, 256, 1, 64, 109, 64, 1238
         0, 64, 619, 619, 128, 1, 64, 55, 64, 619
     };
@@ -817,6 +817,7 @@ void DecodeBlock(Channel *ch) {
 }
 
 void MixStereo(int sample_count) {
+    // neagix: check if this can be optimized
 #if defined(TARGET_OS_MAC) && TARGET_OS_MAC
     static int wave[SOUND_BUFFER_SIZE];
 #else
@@ -1035,8 +1036,7 @@ void MixStereo(int sample_count) {
                                 (long) freq) / (long) FIXED_POINT;
                         ch->sample = (int16) (ch->sample + (((ch->next_sample - ch->sample) *
                                 (long) (ch->count)) / (long) FIXED_POINT));
-                    }
-                    else
+                    } else
                         ch->interpolate = 0;
                 } else {
                     for (; VL > 0; VL--)
@@ -1283,8 +1283,7 @@ void MixMono(int sample_count) {
                                 (long) freq) / (long) FIXED_POINT;
                         ch->sample = (int16) (ch->sample + (((ch->next_sample - ch->sample) *
                                 (long) (ch->count)) / (long) FIXED_POINT));
-                    }
-                    else
+                    } else
                         ch->interpolate = 0;
                 } else {
                     for (; V > 0; V--)
@@ -1315,12 +1314,13 @@ mono_exit:
     }
 }
 
+#endif
+
 // For backwards compatibility with older port specific code
 
 void S9xMixSamples(uint8 *buffer, int sample_count) {
     S9xMixSamplesO(buffer, sample_count, 0);
 }
-#endif
 
 void S9xMixSamplesO(uint8 *buffer, int sample_count, int byte_offset) {
     int J;
@@ -1676,7 +1676,7 @@ void S9xSetPlaybackRate(uint32 playback_rate) {
 }
 
 bool8_32 S9xInitSound(int mode, bool8_32 stereo, int buffer_size) {
-    so.sound_fd = -1;
+    //    so.sound_fd = -1;
     so.sound_switch = 255;
 
     so.playback_rate = 0;

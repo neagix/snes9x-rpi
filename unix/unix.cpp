@@ -1439,7 +1439,7 @@ void S9xProcessEvents(bool8_32 block) {
                 //QUIT Emulator
                 if (SDL_JoystickGetButton(keyssnes, sfc_key[QUIT]) && SDL_JoystickGetButton(keyssnes, sfc_key[B_1])) {
                     S9xExit();
-                }                    // MAINMENU
+                }// MAINMENU
                 else if (SDL_JoystickGetButton(keyssnes, sfc_key[QUIT])) {
                     S9xSetSoundMute(TRUE);
                     menu_loop();
@@ -1475,13 +1475,13 @@ void S9xProcessEvents(bool8_32 block) {
                 //QUIT Emulator
                 if ((keyssnes[sfc_key[SELECT_1]] == SDL_PRESSED) && (keyssnes[sfc_key[START_1]] == SDL_PRESSED) && (keyssnes[sfc_key[X_1]] == SDL_PRESSED)) {
                     S9xExit();
-                }                    //RESET ROM Playback
+                }//RESET ROM Playback
                 else if ((keyssnes[sfc_key[SELECT_1]] == SDL_PRESSED) && (keyssnes[sfc_key[START_1]] == SDL_PRESSED) && (keyssnes[sfc_key[B_1]] == SDL_PRESSED)) {
                     //make sure the sram is stored before resetting the console
                     //it should work without, but better safe than sorry...
                     Memory.SaveSRAM(S9xGetFilename(".srm"));
                     S9xReset();
-                }                    //SAVE State
+                }//SAVE State
                 else if ((keyssnes[sfc_key[START_1]] == SDL_PRESSED) && (keyssnes[sfc_key[R_1]] == SDL_PRESSED)) {
                     //extern char snapscreen;
                     char fname[256], ext[20];
@@ -1494,7 +1494,7 @@ void S9xProcessEvents(bool8_32 block) {
                     strcpy(fname, S9xGetFilename(ext));
                     save_screenshot(fname);
                     S9xSetSoundMute(false);
-                }                    //LOAD State
+                }//LOAD State
                 else if ((keyssnes[sfc_key[START_1]] == SDL_PRESSED) && (keyssnes[sfc_key[L_1]] == SDL_PRESSED)) {
                     char fname[256], ext[8];
                     S9xSetSoundMute(true);
@@ -1502,7 +1502,7 @@ void S9xProcessEvents(bool8_32 block) {
                     strcpy(fname, S9xGetFilename(ext));
                     S9xLoadSnapshot(fname);
                     S9xSetSoundMute(false);
-                }                    // MAINMENU
+                }// MAINMENU
                 else if ((keyssnes[sfc_key[SELECT_1]] == SDL_PRESSED) && (keyssnes[sfc_key[B_1]] == SDL_PRESSED)) {
                     S9xSetSoundMute(true);
                     menu_loop();
@@ -1513,7 +1513,7 @@ void S9xProcessEvents(bool8_32 block) {
 #endif
 
 #ifdef PANDORA
-                }                    // another shortcut I'm afraid
+                }// another shortcut I'm afraid
                 else if (event.key.keysym.sym == SDLK_SPACE) {
                     S9xSetSoundMute(true);
                     menu_loop();
@@ -1602,12 +1602,12 @@ uint32 S9xReadJoypad(int which1) {
 // SOUND
 //===============================================================================================
 
-static int Rates[8] ={
+static int Rates[8] = {
     //    0, 8192, 11025, 16000, 22050, 29300, 36600, 44000
     0, 8192, 11025, 16000, 22050, 32000, 44100, 48000
 };
 
-static int BufferSizes [8] ={
+static int BufferSizes [8] = {
     0, 256, 256, 256, 512, 512, 1024, 1024
 };
 
@@ -1622,8 +1622,73 @@ static volatile bool8 block_signal = FALSE;
 static volatile bool8 block_generate_sound = FALSE;
 static volatile bool8 pending_signal = FALSE;
 
+SDL_AudioSpec *audiospec;
+
+static void sdl_audio_callback(void *userdata, Uint8 *stream, int len) {
+    SDL_LockAudio();
+    S9xMixSamples(stream, len >> (Settings.SixteenBitSound ? 1 : 0));
+    SDL_UnlockAudio();
+}
+/*
+static void samples_available(void *data) {
+    SDL_LockAudio();
+    S9xFinalizeSamples();
+    SDL_UnlockAudio();
+}*/
+
 bool8_32 S9xOpenSoundDevice(int mode, bool8_32 stereo, int buffer_size) {
-#ifndef CYGWIN32
+    SDL_InitSubSystem(SDL_INIT_AUDIO);
+
+    // neagix: TODO: release this
+    audiospec = (SDL_AudioSpec *) malloc(sizeof (SDL_AudioSpec));
+
+    so.sixteen_bit = TRUE;
+    so.stereo = stereo;
+    so.playback_rate = Rates[mode & 0x07];
+
+    //    if (buffer_size == 0)
+    so.buffer_size = buffer_size;
+    printf("sound buffer_size = %d\n", buffer_size);
+    //	so.buffer_size = buffer_size = BufferSizes [mode & 7];
+
+    //	buffer_size = so.buffer_size = 256;
+
+    /*if (buffer_size > MAX_BUFFER_SIZE / 4)
+        buffer_size = MAX_BUFFER_SIZE / 4;
+    if (so.sixteen_bit)
+        buffer_size *= 2;
+    if (so.stereo)
+        buffer_size *= 2; */    
+    
+    audiospec->freq = so.playback_rate;
+    audiospec->channels = so.stereo ? 2 : 1;
+    audiospec->format = so.sixteen_bit ? AUDIO_S16SYS : AUDIO_U8;
+    audiospec->samples = (buffer_size * audiospec->freq / 1000) >> 1;
+    audiospec->callback = sdl_audio_callback;
+
+    printf("SDL sound driver initializing...\n");
+    printf("    --> (Frequency: %dhz, Latency: %dms)...",
+            audiospec->freq,
+            (audiospec->samples * 1000 / audiospec->freq) << 1);
+
+    if (SDL_OpenAudio(audiospec, NULL) < 0) {
+        printf("Failed\n");
+
+        free(audiospec);
+        audiospec = NULL;
+
+        return FALSE;
+    }
+
+    printf("OK\n");
+
+    S9xSetPlaybackRate(so.playback_rate);
+
+    SDL_PauseAudio(0);
+
+//    S9xSetSamplesAvailableCallback(samples_available, NULL);
+
+#if 0 /*CYGWIN32*/
     int J, K;
 
     if ((so.sound_fd = open("/dev/dsp", O_WRONLY | O_ASYNC)) < 0) {
@@ -1828,6 +1893,10 @@ void *S9xProcessSound(void *) {
             pthread_mutex_unlock(&mutex);
 #endif
             block_generate_sound = FALSE;
+         
+            // neagix: actual sound output disabled, since we use an SDL callback
+            // neagix: TODO: check if possible to use synchronous mode
+#if     0
             do {
                 if (byte_offset + J > SOUND_BUFFER_SIZE) {
                     I = write(so.sound_fd, (char *) Buf + byte_offset,
@@ -1844,6 +1913,7 @@ void *S9xProcessSound(void *) {
                     }
                 }
             } while ((I < 0 && errno == EINTR) || J > 0);
+#endif
         }
 
 #ifdef USE_THREADS

@@ -134,11 +134,16 @@ LDLIBS         = `sdl-config --libs` -lSDL
 
 INCLUDES=
 
+##neagix: to be discarded in stable release
+##neagix: also: strip should be re-enabled in release
+#EXTDBG=	-g3 -gdwarf-2
+EXTDBG=
+
 OPTIMISE= -D_ZAURUS -O2 -ffast-math -fstrict-aliasing -fomit-frame-pointer -ftree-vectorize -funroll-all-loops -fpeel-loops -ftracer -funswitch-loops -finline-functions
 #-G 0 
 # -fprofile-use -ftest-coverage -fprofile-arcs
 
-CCFLAGS = $(DEFAULT_CFLAGS) -Wno-write-strings $(OPTIMISE) \
+CCFLAGS = $(DEFAULT_CFLAGS) -Wno-write-strings $(EXTDBG) $(OPTIMISE) \
 -I. \
 -Iunzip \
 -Isdl \
