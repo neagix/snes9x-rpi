@@ -73,13 +73,7 @@ extern bool8_32 Scale;
 
 extern void *dest_screen_buffer;
 
-#ifdef  S9XSDL
-#include "sdlvideo.h"
-#endif
-
-#ifdef  S9XRPI
-#include "rpivideo.h"
-#endif
+#include "svga.h"
 
 #ifdef PANDORA
 #include "pandora_scaling/blitscale.h"
@@ -100,55 +94,6 @@ void S9xGraphicsMode() {
 void S9xTextMode() {
 }
 #endif
-
-void S9xInitDisplay(int /*argc*/, char ** /*argv*/) {
-    if (!S9xInitVideo())
-        S9xExit();
-
-    if (Settings.SupportHiRes) {
-        S9xEnableHiRes();
-    } else {
-#ifdef PANDORA
-        if (g_scale > bs_1to1) {
-            GFX.Screen = (uint8*) malloc((512 * 480 * 2) + 64);
-            GFX.Pitch = 320 * 2;
-        } else {
-            GFX.Screen = (uint8 *) dest_screen_buffer + 64;
-            GFX.Pitch = 320 * 2;
-        }
-#else
-        if (Scale) {
-            GFX.Screen = (uint8 *) dest_screen_buffer;
-            GFX.Pitch = 320 * 2;
-        } else {
-            GFX.Screen = (uint8 *) dest_screen_buffer + 64; //center screen
-            GFX.Pitch = 320 * 2;
-        }
-#endif
-    }
-
-    GFX.SubScreen = (uint8 *) malloc(512 * 480 * 2);
-    GFX.ZBuffer = (uint8 *) malloc(512 * 480 * 2);
-    GFX.SubZBuffer = (uint8 *) malloc(512 * 480 * 2);
-}
-
-void S9xDeinitDisplay() {
-#ifdef PANDORA
-    // for vsync
-    extern int g_fb;
-    if (g_fb >= 0) {
-        close(g_fb);
-    }
-    // for LCD refresh
-    system("/usr/bin/sudo -n /usr/pandora/scripts/op_lcdrate.sh 60");
-#endif
-
-    S9xDeInitVideo();
-
-    free(GFX.SubScreen);
-    free(GFX.ZBuffer);
-    free(GFX.SubZBuffer);
-}
 
 void S9xSetPalette() {
 }

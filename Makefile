@@ -92,10 +92,10 @@ OBJECTS=$(CPUOBJ) $(FXOBJ) $(C4OBJ) \
 	cpu.o tile.o gfx.o clip.o \
 	$(PANDORAOBJS) \
 	memmap.o ppu.o dma.o unix/menu.o unix/unix.o \
-	$(SOUNDOBJ) unix/svga.o \
-	$(VIDEOOBJ) \
+	$(SOUNDOBJ) \
+	unix/svga.o $(VIDEOOBJ) \
 	sdd1.o sdd1emu.o dsp1.o sa1.o sa1cpu.o obc1.o \
-    snes9x.o snapshot.o data.o globals.o \
+	snes9x.o snapshot.o data.o globals.o \
 	$(KREEDOBJ) $(CHEATS)
 
 ifdef NETPLAY
@@ -185,7 +185,7 @@ else
 ifdef OPENGL
 all: offsets osnes9x
 else
-all: snes9x 
+all: snes9x-rpi
 endif
 endif
 
@@ -208,9 +208,9 @@ $(OPENGLDEPENDS):
 	touch $(OPENGLDEPENDS)
 	$(RM) $(OPENGLNO_DEPENDS)
 
-snes9x:	$(OBJECTS) 
+snes9x-rpi:	$(OBJECTS) 
 	$(CC) $(INCLUDES) -o $@ $(OBJECTS) $(EXTRALIBS) $(LDLIBS) -lstdc++ -lz -lpthread -lm -lgcov
-	$(STRIP) snes9x
+	$(STRIP) $@
 
 gsnes9x: $(OBJECTS) unix/x11.o unix/glide.o
 	$(CCC) $(INCLUDES) -o $@ $(OBJECTS) unix/x11.o unix/glide.o $(LDLIBS) $(GLIDELIBS) -lXext -lX11 -lXxf86dga -lXxf86vm $(EXTRALIBS) -lz -lm
@@ -289,6 +289,8 @@ memmap.o: cpuexec.h snes9x.h memmap.h ppu.h port.h cheats.h getset.h apu.h \
 	  spc700.h
 unix.o: cpuexec.h snes9x.h port.h snapshot.h display.h apu.h gfx.h cheats.h soundux.h
 menu.o: cpuexec.h snes9x.h port.h snapshot.h display.h apu.h gfx.h
+rpivideo.o: cpuexec.h snes9x.h port.h snapshot.h display.h apu.h gfx.h
+sdlvideo.o: cpuexec.h snes9x.h port.h snapshot.h display.h apu.h gfx.h
 x11.o: display.h snes9x.h memmap.h debug.h ppu.h snapshot.h gfx.h
 ggi.o: display.h snes9x.h memmap.h debug.h ppu.h snapshot.h gfx.h 
 svga.o: display.h snes9x.h memmap.h debug.h ppu.h snapshot.h gfx.h soundux.h

@@ -388,12 +388,12 @@ char *S9xParseArgs (char **argv, int argc)
 	    {
 		Settings.DisableMasterVolume = TRUE;
 	    }
-	    else if (strcasecmp (argv [i], "-soundsync") == 0 ||
+	    else if (strcasecmp (argv [i], "-nosoundsync") == 0 ||
 		     strcasecmp (argv [i], "-sy") == 0)
 	    {
-		Settings.SoundSync = TRUE;
-		Settings.SoundEnvelopeHeightReading = TRUE;
-		Settings.InterpolatedSound = TRUE;
+		Settings.SoundSync = FALSE;
+		Settings.SoundEnvelopeHeightReading = FALSE;
+		Settings.InterpolatedSound = FALSE;
 	    }
 	    else if (strcasecmp (argv [i], "-soundsync2") == 0 ||
 		     strcasecmp (argv [i], "-sy2") == 0)

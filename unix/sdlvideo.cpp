@@ -1,7 +1,7 @@
 
 #include "port.h"
 #include "gfx.h"
-#include "sdlvideo.h"
+#include "svga.h"
 
 #include <SDL/SDL.h>
 
@@ -16,7 +16,7 @@ void S9xPerformUpdate(int x, int y, int w, int h) {
     SDL_UpdateRect(screen, x, y, w, h);
 }
 
-bool S9xInitVideo() {
+bool InitSDL() {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("Unable to initialize SDL: %s\n", SDL_GetError());
         exit(3);
@@ -87,18 +87,59 @@ bool S9xInitVideo() {
     }
 }
 
-void S9xEnableHiRes() {
-    printf("Enabling high-resolution");
-    gfxscreen = SDL_CreateRGBSurface(SDL_SWSURFACE, 512, 480, 16, 0, 0, 0, 0);
-    GFX.Screen = (uint8 *) gfxscreen->pixels;
-    GFX.Pitch = 512 * 2;
+void S9xInitDisplay(int /*argc*/, char ** /*argv*/) {
+    if (!S9xInitVideo())
+        InitSDL();
+
+    if (Settings.SupportHiRes) {
+        printf("Enabling high-resolution");
+        gfxscreen = SDL_CreateRGBSurface(SDL_SWSURFACE, 512, 480, 16, 0, 0, 0, 0);
+        GFX.Screen = (uint8 *) gfxscreen->pixels;
+        GFX.Pitch = 512 * 2;
+    } else {
+#ifdef PANDORA
+        if (g_scale > bs_1to1) {
+            GFX.Screen = (uint8*) malloc((512 * 480 * 2) + 64);
+            GFX.Pitch = 320 * 2;
+        } else {
+            GFX.Screen = (uint8 *) dest_screen_buffer + 64;
+            GFX.Pitch = 320 * 2;
+        }
+#else
+        if (Scale) {
+            GFX.Screen = (uint8 *) dest_screen_buffer;
+            GFX.Pitch = 320 * 2;
+        } else {
+            GFX.Screen = (uint8 *) dest_screen_buffer + 64; //center screen
+            GFX.Pitch = 320 * 2;
+        }
+#endif
+    }
+
+    GFX.SubScreen = (uint8 *) malloc(512 * 480 * 2);
+    GFX.ZBuffer = (uint8 *) malloc(512 * 480 * 2);
+    GFX.SubZBuffer = (uint8 *) malloc(512 * 480 * 2);
 }
 
-void S9xDeInitVideo() {
+void S9xDeinitDisplay() {
+#ifdef PANDORA
+    // for vsync
+    extern int g_fb;
+    if (g_fb >= 0) {
+        close(g_fb);
+    }
+    // for LCD refresh
+    system("/usr/bin/sudo -n /usr/pandora/scripts/op_lcdrate.sh 60");
+#endif
+
     // only created for high-res modes
     if (gfxscreen != NULL)
         SDL_FreeSurface(gfxscreen);
 
     SDL_FreeSurface(screen);
     SDL_ShowCursor(SDL_ENABLE);
+
+    free(GFX.SubScreen);
+    free(GFX.ZBuffer);
+    free(GFX.SubZBuffer);
 }
