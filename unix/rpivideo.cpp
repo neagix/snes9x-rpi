@@ -7,7 +7,7 @@
 #include "librpi2d/rpi2d.h"
 #include <GLES2/gl2.h>
 
-extern void S9xExit ();
+extern void S9xExit();
 
 extern uint32 xs, ys, cl, cs;
 extern bool8_32 Scale;
@@ -25,6 +25,8 @@ void S9xPerformUpdate(int x, int y, int w, int h) {
 }
 
 void S9xInitDisplay(int /*argc*/, char ** /*argv*/) {
+    //TODO: cover all screen in black, then render only texture in center
+
     // initialize Raspberry Pi
     rpi2D = new Raspberry2D(xs, ys);
 
@@ -42,10 +44,12 @@ void S9xInitDisplay(int /*argc*/, char ** /*argv*/) {
     }
 
     // create the texture
-    textureBuffer = new Texture2D(rpi2D->Width, rpi2D->Height, 2, GL_RGB, GL_UNSIGNED_SHORT_5_6_5);
+    textureBuffer = new Texture2D(xs, ys, 2, GL_RGB, GL_UNSIGNED_SHORT_5_6_5);
 
     // create the main display surface
-    dest_screen_buffer = malloc(xs * ys * 2);
+    dest_screen_buffer = malloc(320 * textureBuffer->Height * 2);
+
+    //TODO: check if possible to use directly one surface when no hires mode is needed
 
     if (Settings.SupportHiRes) {
         printf("Enabling high-resolution\n");
@@ -103,3 +107,4 @@ void S9xDeinitDisplay() {
     free(GFX.ZBuffer);
     free(GFX.SubZBuffer);
 }
+

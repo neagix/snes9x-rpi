@@ -204,7 +204,7 @@ void S9xSetSoundVolume(int channel, short volume_left, short volume_right) {
 
     ch->volume_left = volume_left;
     ch->volume_right = volume_right;
-    ch-> left_vol_level = (ch->envx * volume_left) / 128;
+    ch->left_vol_level = (ch->envx * volume_left) / 128;
     ch->right_vol_level = (ch->envx * volume_right) / 128;
 }
 

@@ -88,12 +88,15 @@ else
 CHEATS=
 endif
 
+## disabled: unix/menu.o
+
 OBJECTS=$(CPUOBJ) $(FXOBJ) $(C4OBJ) \
 	cpu.o tile.o gfx.o clip.o \
 	$(PANDORAOBJS) \
-	memmap.o ppu.o dma.o unix/menu.o unix/unix.o \
+	memmap.o ppu.o dma.o unix/unix.o \
 	$(SOUNDOBJ) \
 	unix/svga.o $(VIDEOOBJ) \
+	unix/rpiinput.o \
 	sdd1.o sdd1emu.o dsp1.o sa1.o sa1cpu.o obc1.o \
 	snes9x.o snapshot.o data.o globals.o \
 	$(KREEDOBJ) $(CHEATS)
@@ -288,12 +291,9 @@ snes96.o: port.h snes9x.h memmap.h
 memmap.o: cpuexec.h snes9x.h memmap.h ppu.h port.h cheats.h getset.h apu.h \
 	  spc700.h
 unix.o: cpuexec.h snes9x.h port.h snapshot.h display.h apu.h gfx.h cheats.h soundux.h
-menu.o: cpuexec.h snes9x.h port.h snapshot.h display.h apu.h gfx.h
-rpivideo.o: cpuexec.h snes9x.h port.h snapshot.h display.h apu.h gfx.h
 sdlvideo.o: cpuexec.h snes9x.h port.h snapshot.h display.h apu.h gfx.h
 x11.o: display.h snes9x.h memmap.h debug.h ppu.h snapshot.h gfx.h
 ggi.o: display.h snes9x.h memmap.h debug.h ppu.h snapshot.h gfx.h 
-svga.o: display.h snes9x.h memmap.h debug.h ppu.h snapshot.h gfx.h soundux.h
 gfx.o: memmap.h snes9x.h ppu.h gfx.h display.h port.h
 tile.o: memmap.h snes9x.h ppu.h display.h gfx.h tile.h
 spc700.o: spc700.h apu.h apumem.h snes9x.h memmap.h

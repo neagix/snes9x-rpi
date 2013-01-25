@@ -54,8 +54,8 @@
 #include <ctype.h>
 #include <SDL/SDL.h>
 #include <time.h>
-#include "unix/menu.h"
-#include "keydef.h"
+//#include "unix/menu.h"
+//#include "keydef.h"
 
 #ifdef NETPLAY_SUPPORT
 #include "../netplay.h"
@@ -95,8 +95,8 @@ extern "C" {
 pthread_mutex_t mutex;
 #endif
 
-#include <sys/soundcard.h>
-#include <sys/mman.h>
+//#include <sys/soundcard.h>
+//#include <sys/mman.h>
 
 #include "snes9x.h"
 #include "memmap.h"
@@ -113,6 +113,7 @@ pthread_mutex_t mutex;
 #include "unix/extra_defines.h"
 
 #include "svga.h"
+#include "input.h"
 
 #ifdef PANDORA
 #include "pandora_scaling/blitscale.h"
@@ -147,11 +148,11 @@ int cut_left = 0;
 int cut_right = 0;
 #endif
 
-#ifdef CAANOO
+/*#ifdef CAANOO
 SDL_Joystick* keyssnes;
 #else
 uint8 *keyssnes;
-#endif
+#endif*/
 
 #ifdef NETPLAY_SUPPORT
 static uint32 joypads[8];
@@ -172,9 +173,11 @@ int OldSkipFrame;
 //void *S9xProcessSound(void *);
 void OutOfMemory();
 
-#ifdef DINGOO
-void gp2x_sound_volume(int l, int r);
-#endif
+// rPi port: added all this joystick stuff
+// If for some unfathomable reason your joystick has more than 32 buttons or 8 
+// axes, you should change these array definitions to reflect that. 
+uint8 joy_buttons[32];
+uint8 joy_axes[8];
 
 extern void S9xDisplayFrameRate(uint8 *, uint32);
 extern void S9xDisplayString(const char *string, uint8 *, uint32, int);
@@ -264,9 +267,10 @@ int main(int argc, char **argv) {
     Settings.Stereo = TRUE;
     Settings.SoundBufferSize = 128; //256 //512
     Settings.SoundSync = TRUE;
-		Settings.SoundEnvelopeHeightReading = TRUE;
-		Settings.InterpolatedSound = TRUE;
     
+    // apply that nice gaussian interpolation
+    Settings.SoundEnvelopeHeightReading = TRUE;
+    Settings.InterpolatedSound = TRUE;
     
     Settings.CyclesPercentage = 100;
     Settings.DisableSoundEcho = FALSE;
@@ -319,6 +323,12 @@ int main(int argc, char **argv) {
 
     //parse commandline arguments for ROM filename
     rom_filename = S9xParseArgs(argv, argc);
+    
+    if (!rom_filename) {
+        fprintf(stderr, "No rom specified\n");
+//        exit(-1);
+        return -1;
+    }
 
     //printf( "Playbackrate1: %02d\n",Settings.SoundPlaybackRate );
 
@@ -339,7 +349,7 @@ int main(int argc, char **argv) {
     S9xSetRenderPixelFormat(RGB565);
 #endif
 
-#ifndef DINGOO
+/*#ifndef DINGOO
     // ROM selector if no rom filename is available!!!!!!!!!!!!!!
     if (!rom_filename) {
         S9xInitDisplay(argc, argv);
@@ -358,9 +368,10 @@ int main(int argc, char **argv) {
         S9xDeinitDisplay();
         printf("Romfile selected: %s\n", rom_filename);
     }
-#endif
+#endif*/
 
-    if (rom_filename) {
+//    if (rom_filename)
+    {
         if (!Memory.LoadROM(rom_filename)) {
             char dir [_MAX_DIR + 1];
             char drive [_MAX_DRIVE + 1];
@@ -464,8 +475,8 @@ int main(int argc, char **argv) {
         }
         ifs.close();
 #endif
-    } else {
-        S9xExit();
+//    } else {
+//        S9xExit();
     }
 
     S9xInitDisplay(argc, argv);
@@ -548,12 +559,22 @@ int main(int argc, char **argv) {
     S9xSetTitle(String);
 #endif
 
+/*
+// no sound support
+		Settings.SoundBufferSize = 8192;
+    	Settings.SoundPlaybackRate = 1;
+    	Settings.DisableSoundEcho = TRUE;
+    	Settings.DisableMasterVolume = TRUE;
+		Settings.Stereo = FALSE;
+    	S9xSetSoundMute (TRUE);
+*/
+
 #ifdef JOYSTICK_SUPPORT
     uint32 JoypadSkip = 0;
 #endif
 
     // mutex we will use to synchronize sound generation&playback
-            pthread_mutex_init(&mutex, NULL);
+    pthread_mutex_init(&mutex, NULL);
 
     //InitTimer();
     S9xSetSoundMute(FALSE);
@@ -566,7 +587,7 @@ int main(int argc, char **argv) {
 #ifdef NETPLAY_SUPPORT
         if (NP_Activated) {
             if (NetPlay.PendingWait4Sync && !S9xNPWaitForHeartBeatDelay(100)) {
-                S9xProcessEvents(FALSE);
+                S9xProcessEvents(false);
                 continue;
             }
 
@@ -616,7 +637,7 @@ int main(int argc, char **argv) {
         else
 #endif
             if (Settings.Paused) {
-            S9xProcessEvents(FALSE);
+            S9xProcessEvents(false);
             usleep(100000);
         }
 
@@ -625,7 +646,7 @@ int main(int argc, char **argv) {
             ReadJoysticks();
 #endif
 
-        S9xProcessEvents(TRUE);
+        S9xProcessEvents(true);
 
 #ifdef DEBUGGER
         if (!Settings.Paused && !(CPU.Flags & DEBUG_MODE_FLAG))
@@ -648,6 +669,8 @@ void OutOfMemory() {
     Memory.Deinit();
     S9xDeinitAPU();
     S9xDeinitDisplay();
+    
+    SDL_Quit();
 
     exit(1);
 }
@@ -684,6 +707,10 @@ void S9xExit() {
 
     SDL_PauseAudio(0);
     S9xSetSoundMute(true);    
+        
+    // neagix: input thread is automatically terminated when quit is requested
+    // nonetheless, for all other cases we want to force terminate it
+    S9xCloseInputDevices();
 
     // neagix: disabled
 /*#ifdef USE_THREADS
@@ -705,129 +732,15 @@ void S9xExit() {
 
     Memory.Deinit();
     S9xDeinitAPU();
+
     S9xDeinitDisplay();
   
-    // already hooked
-//    SDL_Quit();
+    // neagix: causes invalid free()
+  //  SDL_Quit();
 
     exit(0);
 }
 
-Uint16 sfc_key[256];
-
-void S9xInitInputDevices() {
-#ifdef CAANOO
-    keyssnes = SDL_JoystickOpen(0);
-#else
-    keyssnes = SDL_GetKeyState(NULL);
-#endif
-
-    memset(sfc_key, 0, 256);
-
-#ifdef CAANOO
-    // Caanoo mapping
-    sfc_key[A_1] = CAANOO_BUTTON_B; //Snes A
-    sfc_key[B_1] = CAANOO_BUTTON_X; //Snes B
-    sfc_key[X_1] = CAANOO_BUTTON_Y; //Snes X
-    sfc_key[Y_1] = CAANOO_BUTTON_A; //Snes Y
-    sfc_key[L_1] = CAANOO_BUTTON_L;
-    sfc_key[R_1] = CAANOO_BUTTON_R;
-    sfc_key[START_1] = CAANOO_BUTTON_HELP1;
-    sfc_key[SELECT_1] = CAANOO_BUTTON_HELP2;
-    sfc_key[LEFT_1] = CAANOO_BUTTON_LEFT;
-    sfc_key[RIGHT_1] = CAANOO_BUTTON_RIGHT;
-    sfc_key[UP_1] = CAANOO_BUTTON_UP;
-    sfc_key[DOWN_1] = CAANOO_BUTTON_DOWN;
-
-    sfc_key[QUIT] = CAANOO_BUTTON_HOME;
-#elif PANDORAKEYS
-    // Pandora mapping
-    sfc_key[A_1] = SDLK_END; //DINGOO_BUTTON_A; A = B
-    sfc_key[B_1] = SDLK_PAGEDOWN; //DINGOO_BUTTON_B; B = X
-    sfc_key[X_1] = SDLK_PAGEUP; //DINGOO_BUTTON_X; X = Y
-    sfc_key[Y_1] = SDLK_HOME; //DINGOO_BUTTON_Y; Y = A
-    sfc_key[L_1] = SDLK_RSHIFT; //DINGOO_BUTTON_L;
-    sfc_key[R_1] = SDLK_RCTRL; // DINGOO_BUTTON_R;
-    sfc_key[START_1] = SDLK_LALT; //DINGOO_BUTTON_START;
-    sfc_key[SELECT_1] = SDLK_LCTRL; //DINGOO_BUTTON_SELECT;
-    sfc_key[LEFT_1] = SDLK_LEFT; //DINGOO_BUTTON_LEFT;
-    sfc_key[RIGHT_1] = SDLK_RIGHT; //DINGOO_BUTTON_RIGHT;
-    sfc_key[UP_1] = SDLK_UP; //DINGOO_BUTTON_UP;
-    sfc_key[DOWN_1] = SDLK_DOWN; //DINGOO_BUTTON_DOWN;
-    /*
-            // for now, essentially unmapped
-            sfc_key[LEFT_2] = SDLK_g;
-            sfc_key[RIGHT_2] = SDLK_j;
-            sfc_key[UP_2] = SDLK_u;
-            sfc_key[DOWN_2] = SDLK_n;
-            sfc_key[LU_2] = SDLK_y;
-            sfc_key[LD_2] = SDLK_b;
-            sfc_key[RU_2] = SDLK_i;
-            sfc_key[RD_2] = SDLK_m;
-
-            sfc_key[QUIT] = SDLK_ESCAPE;
-            sfc_key[ACCEL] = SDLK_TAB;
-     */
-#else
-    // Dingoo mapping
-    sfc_key[A_1] = DINGOO_BUTTON_A;
-    sfc_key[B_1] = DINGOO_BUTTON_B;
-    sfc_key[X_1] = DINGOO_BUTTON_X;
-    sfc_key[Y_1] = DINGOO_BUTTON_Y;
-    sfc_key[L_1] = DINGOO_BUTTON_L;
-    sfc_key[R_1] = DINGOO_BUTTON_R;
-    sfc_key[START_1] = DINGOO_BUTTON_START;
-    sfc_key[SELECT_1] = DINGOO_BUTTON_SELECT;
-    sfc_key[LEFT_1] = DINGOO_BUTTON_LEFT;
-    sfc_key[RIGHT_1] = DINGOO_BUTTON_RIGHT;
-    sfc_key[UP_1] = DINGOO_BUTTON_UP;
-    sfc_key[DOWN_1] = DINGOO_BUTTON_DOWN;
-    /*
-            // for now, essentially unmapped
-            sfc_key[LEFT_2] = SDLK_g;
-            sfc_key[RIGHT_2] = SDLK_j;
-            sfc_key[UP_2] = SDLK_u;
-            sfc_key[DOWN_2] = SDLK_n;
-            sfc_key[LU_2] = SDLK_y;
-            sfc_key[LD_2] = SDLK_b;
-            sfc_key[RU_2] = SDLK_i;
-            sfc_key[RD_2] = SDLK_m;
-
-            sfc_key[QUIT] = SDLK_d;
-            sfc_key[ACCEL] = SDLK_u;
-     */
-#endif
-
-    int i = 0;
-    char *envp, *j;
-    envp = j = getenv("S9XKEYS");
-    if (envp) {
-        do {
-            if (j = strchr(envp, ','))
-                *j = 0;
-            if (i == 0) sfc_key[QUIT] = atoi(envp);
-            else if (i == 1) sfc_key[A_1] = atoi(envp);
-            else if (i == 2) sfc_key[B_1] = atoi(envp);
-            else if (i == 3) sfc_key[X_1] = atoi(envp);
-            else if (i == 4) sfc_key[Y_1] = atoi(envp);
-            else if (i == 5) sfc_key[L_1] = atoi(envp);
-            else if (i == 6) sfc_key[R_1] = atoi(envp);
-            else if (i == 7) sfc_key[START_1] = atoi(envp);
-            else if (i == 8) sfc_key[SELECT_1] = atoi(envp);
-            else if (i == 9) sfc_key[LEFT_1] = atoi(envp);
-            else if (i == 10) sfc_key[RIGHT_1] = atoi(envp);
-            else if (i == 11) sfc_key[UP_1] = atoi(envp);
-            else if (i == 12) sfc_key[DOWN_1] = atoi(envp);
-            /*			else if (i == 13) sfc_key[LU_2] = atoi(envp);
-                                    else if (i == 14) sfc_key[LD_2] = atoi(envp);
-                                    else if (i == 15) sfc_key[RU_2] = atoi(envp);
-                                    else if (i == 16) sfc_key[RD_2] = atoi(envp);
-             */ envp = j + 1;
-            ++i;
-        } while (j);
-    }
-
-}
 
 const char *GetHomeDirectory() {
 #if CAANOO
@@ -994,7 +907,10 @@ bool8_32 S9xDeinitUpdate(int Width, int Height) {
 
         S9xPerformUpdate(32, 0, 256, Height);
     } else {
-        // if scaling for non-highres (is centered)
+        
+        // neagix: added also this optimization
+#ifdef  _ZAURUS
+        // if scalig for non-highres (is centered)
         if (Scale) {
             int x, y, s;
             uint32 x_error;
@@ -1031,7 +947,9 @@ bool8_32 S9xDeinitUpdate(int Width, int Height) {
                 S9xDisplayFrameRate((uint8 *) dest_screen_buffer + 64, 640);
 
             S9xPerformUpdate(0, yoffset, 320, Height);
-        } else {
+        } else
+#endif
+        {
             //center ypos if ysize is only 224px
             //			int yoffset = 8*(Height == 224);
 
@@ -1049,7 +967,7 @@ bool8_32 S9xDeinitUpdate(int Width, int Height) {
 }
 #endif
 
-#ifndef _ZAURUS
+/*#ifndef _ZAURUS
 
 static unsigned long now() {
     static unsigned long seconds_base = 0;
@@ -1060,7 +978,7 @@ static unsigned long now() {
 
     return ((tp.tv_sec - seconds_base) * 1000 + tp.tv_usec / 1000);
 }
-#endif
+#endif*/
 
 void _makepath(char *path, const char *, const char *dir,
         const char *fname, const char *ext) {
@@ -1169,6 +1087,24 @@ void InitTimer() {
         perror("setitimer");
 }*/
 
+
+// by Alex Measday
+int  tsCompare (timespec  &time1, timespec  &time2)
+{
+    if (time1.tv_sec < time2.tv_sec)
+        return (-1) ;				/* Less than. */
+    else if (time1.tv_sec > time2.tv_sec)
+        return (1) ;				/* Greater than. */
+    else if (time1.tv_nsec < time2.tv_nsec)
+        return (-1) ;				/* Less than. */
+    else if (time1.tv_nsec > time2.tv_nsec)
+        return (1) ;				/* Greater than. */
+    else
+        return (0) ;				/* Equal. */
+}
+
+#define BILLION_NS 1000000000
+
 void S9xSyncSpeed() {
 #ifdef NETPLAY_SUPPORT
     if (Settings.NetPlay && NetPlay.Connected) {
@@ -1213,7 +1149,10 @@ void S9xSyncSpeed() {
         return;
     }
 #endif
+        
     if (!Settings.TurboMode && Settings.SkipFrames == AUTO_FRAMERATE) {
+        // added by neagix
+#ifndef TEST_CLOCK_SYNC
         static struct timeval next1 = {0, 0};
         struct timeval now;
 
@@ -1247,6 +1186,57 @@ void S9xSyncSpeed() {
             next1.tv_sec += next1.tv_usec / 1000000;
             next1.tv_usec %= 1000000;
         }
+#else
+        static timespec next1 = {0, 0};
+        timespec now;
+        
+	
+	clock_gettime(CLOCK_MONOTONIC, &now);
+
+        // check if time was reset
+        if (next1.tv_sec == 0) {
+            next1 = now;
+            next1.tv_nsec += 1000;
+        }
+
+        if (tsCompare(next1, now) > 0) {
+            if (IPPU.SkippedFrames == 0) {
+                
+                do {
+                    // neagix: this is NOP - thus commented
+//                    CHECK_SOUND();
+                    
+                    // neagix: we will use nanosleep to get to desired point in future
+/*                    if (0 != clock_nanosleep(CLOCK_MONOTONIC, 0, &next1, NULL)) {
+                        fprintf(stderr, "nanosleep failed\n");
+                        S9xExit();
+                    }*/
+                    
+                    // get clock again, to be more precise
+                    clock_gettime(CLOCK_MONOTONIC, &now);
+                } while (tsCompare(next1, now) > 0);
+            }
+            IPPU.RenderThisFrame = TRUE;
+            IPPU.SkippedFrames = 0;
+        } else {
+            if (IPPU.SkippedFrames < mfs) {
+                IPPU.SkippedFrames++;
+                IPPU.RenderThisFrame = FALSE;
+            } else {
+                IPPU.RenderThisFrame = TRUE;
+                IPPU.SkippedFrames = 0;
+                next1 = now;
+            }
+        }
+        
+        // microseconds to nanoseconds, and add
+        next1.tv_nsec += Settings.FrameTime * 1000;
+        if (next1.tv_nsec >= BILLION_NS) {
+            next1.tv_sec += next1.tv_nsec / BILLION_NS;
+            next1.tv_nsec %= BILLION_NS;
+        }
+        
+#endif
     } else {
         if (++IPPU.FrameSkip >= (Settings.TurboMode ? Settings.TurboSkipFrames
                 : Settings.SkipFrames)) {
@@ -1260,110 +1250,7 @@ void S9xSyncSpeed() {
     }
 }
 
-void S9xProcessEvents(bool8_32 block) {
-    SDL_Event event;
 
-    while (block && SDL_PollEvent(&event)) {
-        switch (event.type) {
-#ifdef CAANOO
-                // CAANOO -------------------------------------------------------------
-            case SDL_JOYBUTTONDOWN:
-                keyssnes = SDL_JoystickOpen(0);
-                //QUIT Emulator
-                if (SDL_JoystickGetButton(keyssnes, sfc_key[QUIT]) && SDL_JoystickGetButton(keyssnes, sfc_key[B_1])) {
-                    S9xExit();
-                }// MAINMENU
-                else if (SDL_JoystickGetButton(keyssnes, sfc_key[QUIT])) {
-                    S9xSetSoundMute(TRUE);
-                    menu_loop();
-                    S9xSetSoundMute(FALSE);
-                }
-                break;
-
-            case SDL_JOYBUTTONUP:
-                keyssnes = SDL_JoystickOpen(0);
-                switch (event.jbutton.button) {
-                }
-                break;
-#else
-                //PANDORA & DINGOO ------------------------------------------------------
-            case SDL_KEYDOWN:
-                keyssnes = SDL_GetKeyState(NULL);
-
-                // shortcut
-#ifdef PANDORA
-                if (event.key.keysym.sym == SDLK_ESCAPE) {
-                    S9xExit();
-                }
-                if (event.key.keysym.sym == SDLK_s) {
-                    do {
-                        g_scale = (blit_scaler_e) ((g_scale + 1) % bs_max);
-                    } while ((blit_scalers [ g_scale ].valid == bs_invalid)
-                            || (Settings.SupportHiRes && !(blit_scalers [ g_scale ].support_hires)));
-                    S9xDeinitDisplay();
-                    S9xInitDisplay(0, 0);
-                }
-
-#endif //PANDORA
-                //QUIT Emulator
-                if ((keyssnes[sfc_key[SELECT_1]] == SDL_PRESSED) && (keyssnes[sfc_key[START_1]] == SDL_PRESSED) && (keyssnes[sfc_key[X_1]] == SDL_PRESSED)) {
-                    S9xExit();
-                }//RESET ROM Playback
-                else if ((keyssnes[sfc_key[SELECT_1]] == SDL_PRESSED) && (keyssnes[sfc_key[START_1]] == SDL_PRESSED) && (keyssnes[sfc_key[B_1]] == SDL_PRESSED)) {
-                    //make sure the sram is stored before resetting the console
-                    //it should work without, but better safe than sorry...
-                    Memory.SaveSRAM(S9xGetFilename(".srm"));
-                    S9xReset();
-                }//SAVE State
-                else if ((keyssnes[sfc_key[START_1]] == SDL_PRESSED) && (keyssnes[sfc_key[R_1]] == SDL_PRESSED)) {
-                    //extern char snapscreen;
-                    char fname[256], ext[20];
-                    S9xSetSoundMute(true);
-                    sprintf(ext, ".00%d", SaveSlotNum);
-                    strcpy(fname, S9xGetFilename(ext));
-                    S9xFreezeGame(fname);
-                    capt_screenshot();
-                    sprintf(ext, ".s0%d", SaveSlotNum);
-                    strcpy(fname, S9xGetFilename(ext));
-                    save_screenshot(fname);
-                    S9xSetSoundMute(false);
-                }//LOAD State
-                else if ((keyssnes[sfc_key[START_1]] == SDL_PRESSED) && (keyssnes[sfc_key[L_1]] == SDL_PRESSED)) {
-                    char fname[256], ext[8];
-                    S9xSetSoundMute(true);
-                    sprintf(ext, ".00%d", SaveSlotNum);
-                    strcpy(fname, S9xGetFilename(ext));
-                    S9xLoadSnapshot(fname);
-                    S9xSetSoundMute(false);
-                }// MAINMENU
-                else if ((keyssnes[sfc_key[SELECT_1]] == SDL_PRESSED) && (keyssnes[sfc_key[B_1]] == SDL_PRESSED)) {
-                    S9xSetSoundMute(true);
-                    menu_loop();
-                    S9xSetSoundMute(false);
-#ifdef DINGOO
-                    //S9xSetMasterVolume (vol, vol);
-                    gp2x_sound_volume(vol, vol);
-#endif
-
-#ifdef PANDORA
-                }// another shortcut I'm afraid
-                else if (event.key.keysym.sym == SDLK_SPACE) {
-                    S9xSetSoundMute(true);
-                    menu_loop();
-                    S9xSetSoundMute(false);
-                    //S9xSetMasterVolume (vol, vol);
-                } else if (event.key.keysym.sym == SDLK_t) {
-                    Settings.TurboMode = !Settings.TurboMode;
-#endif //PANDORA
-                }
-                break;
-            case SDL_KEYUP:
-                keyssnes = SDL_GetKeyState(NULL);
-                break;
-#endif //CAANOO
-        }
-    }
-}
 
 //#endif
 
@@ -1374,61 +1261,6 @@ static long log2(long num) {
         n++;
 
     return (n);
-}
-
-uint32 S9xReadJoypad(int which1) {
-    uint32 val = 0x80000000;
-
-    if (which1 > 4)
-        return 0;
-
-#ifdef CAANOO
-    //player1
-    if (SDL_JoystickGetButton(keyssnes, sfc_key[L_1])) val |= SNES_TL_MASK;
-    if (SDL_JoystickGetButton(keyssnes, sfc_key[R_1])) val |= SNES_TR_MASK;
-    if (SDL_JoystickGetButton(keyssnes, sfc_key[X_1])) val |= SNES_X_MASK;
-    if (SDL_JoystickGetButton(keyssnes, sfc_key[Y_1])) val |= SNES_Y_MASK;
-    if (SDL_JoystickGetButton(keyssnes, sfc_key[B_1])) val |= SNES_B_MASK;
-    if (SDL_JoystickGetButton(keyssnes, sfc_key[A_1])) val |= SNES_A_MASK;
-    if (SDL_JoystickGetButton(keyssnes, sfc_key[START_1])) val |= SNES_START_MASK;
-    if (SDL_JoystickGetButton(keyssnes, sfc_key[SELECT_1])) val |= SNES_SELECT_MASK;
-    if (SDL_JoystickGetAxis(keyssnes, 1) < -20000) val |= SNES_UP_MASK;
-    if (SDL_JoystickGetAxis(keyssnes, 1) > 20000) val |= SNES_DOWN_MASK;
-    if (SDL_JoystickGetAxis(keyssnes, 0) < -20000) val |= SNES_LEFT_MASK;
-    if (SDL_JoystickGetAxis(keyssnes, 0) > 20000) val |= SNES_RIGHT_MASK;
-#else
-    //player1
-    if (keyssnes[sfc_key[L_1]] == SDL_PRESSED) val |= SNES_TL_MASK;
-    if (keyssnes[sfc_key[R_1]] == SDL_PRESSED) val |= SNES_TR_MASK;
-    if (keyssnes[sfc_key[X_1]] == SDL_PRESSED) val |= SNES_X_MASK;
-    if (keyssnes[sfc_key[Y_1]] == SDL_PRESSED) val |= SNES_Y_MASK;
-    if (keyssnes[sfc_key[B_1]] == SDL_PRESSED) val |= SNES_B_MASK;
-    if (keyssnes[sfc_key[A_1]] == SDL_PRESSED) val |= SNES_A_MASK;
-    if (keyssnes[sfc_key[START_1]] == SDL_PRESSED) val |= SNES_START_MASK;
-    if (keyssnes[sfc_key[SELECT_1]] == SDL_PRESSED) val |= SNES_SELECT_MASK;
-    if (keyssnes[sfc_key[UP_1]] == SDL_PRESSED) val |= SNES_UP_MASK;
-    if (keyssnes[sfc_key[DOWN_1]] == SDL_PRESSED) val |= SNES_DOWN_MASK;
-    if (keyssnes[sfc_key[LEFT_1]] == SDL_PRESSED) val |= SNES_LEFT_MASK;
-    if (keyssnes[sfc_key[RIGHT_1]] == SDL_PRESSED) val |= SNES_RIGHT_MASK;
-    //player2
-    /*
-    if (keyssnes[sfc_key[UP_2]] == SDL_PRESSED)		val |= SNES_UP_MASK;
-    if (keyssnes[sfc_key[DOWN_2]] == SDL_PRESSED)	val |= SNES_DOWN_MASK;
-    if (keyssnes[sfc_key[LEFT_2]] == SDL_PRESSED)	val |= SNES_LEFT_MASK;
-    if (keyssnes[sfc_key[RIGHT_2]] == SDL_PRESSED)	val |= SNES_RIGHT_MASK;
-    if (keyssnes[sfc_key[LU_2]] == SDL_PRESSED)	val |= SNES_LEFT_MASK | SNES_UP_MASK;
-    if (keyssnes[sfc_key[LD_2]] == SDL_PRESSED)	val |= SNES_LEFT_MASK | SNES_DOWN_MASK;
-    if (keyssnes[sfc_key[RU_2]] == SDL_PRESSED)	val |= SNES_RIGHT_MASK | SNES_UP_MASK;
-    if (keyssnes[sfc_key[RD_2]] == SDL_PRESSED)	val |= SNES_RIGHT_MASK | SNES_DOWN_MASK;
-     */
-#endif
-
-#ifdef NETPLAY_SUPPORT
-    if (Settings.NetPlay)
-        return (S9xNPGetJoypad(which1));
-#endif
-
-    return (val);
 }
 
 //===============================================================================================
@@ -1468,6 +1300,7 @@ static inline bool SND_TRYLOCK(const char *context) {
             printf("%s: block_generate_sound = true, another SDL playback was still in progress?\n", context);
         else
             printf("%s: trylock failed, buffer was being populated\n", context);
+
         return false;
     }
     return true;
@@ -1475,6 +1308,7 @@ static inline bool SND_TRYLOCK(const char *context) {
 
 static void sdl_audio_callback(void *userdata, Uint8 *stream, int len) {
     if (!SND_TRYLOCK("sdl_audio_callback"))
+
         return;
 
     block_generate_sound = TRUE;
@@ -1599,6 +1433,7 @@ bool8_32 S9xOpenSoundDevice(int mode, bool8_32 stereo, int buffer_size) {
     J = K = power2 | (3 << 16);
     if (ioctl(so.sound_fd, SNDCTL_DSP_SETFRAGMENT, &J) < 0) {
         perror("ioctl SNDCTL_DSP_SETFRAGMENT");
+
         return (FALSE);
     }
 
@@ -1679,6 +1514,7 @@ void S9xGenerateSound() {
     //    block_signal = FALSE;
 
     //#ifdef USE_THREADS
+
     if (Settings.ThreadSound)
         pthread_mutex_unlock(&mutex);
     //    else

@@ -78,7 +78,7 @@ extern struct SLineMatrixData LineMatrixData [240];
 
 extern uint8 Mode7Depths [2];
 
-extern bool8_32 Scale;
+//extern bool8_32 Scale;
 
 #define ON_MAIN(N) \
 (GFX.r212c & (1 << (N)) && \

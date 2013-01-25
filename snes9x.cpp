@@ -493,13 +493,20 @@ char *S9xParseArgs (char **argv, int argc)
 			Settings.NetPlay = TRUE;
 	    }
 #endif
+            
+#ifndef         S9XRPI
 	    else if (strcasecmp (argv [i], "-fullscreen") == 0 ||
 		     strcasecmp (argv [i], "-fs") == 0)
 	    {
 			Scale = TRUE;
 	    }
-	    else
-			S9xParseArg (argv, i, argc);
+#endif
+            else
+#ifdef          S9XRPI
+            // in RPI mode, it's always fullscreen
+            Scale = TRUE;
+#endif
+		S9xParseArg (argv, i, argc);
 	}
 	else
 	    rom_filename = argv [i];

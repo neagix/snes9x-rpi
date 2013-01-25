@@ -234,7 +234,7 @@ struct SSettings{
     bool8_32  TraceDSP;
 
     // Joystick options
-    bool8_32  SwapJoypads;
+//    bool8_32  SwapJoypads;
     bool8_32  JoystickEnabled;
 
     // ROM timing options (see also H_Max above)

@@ -64,12 +64,11 @@
 #include "gfx.h"
 #include "display.h"
 #include "apu.h"
-#include "keydef.h"
+//#include "keydef.h"
 
 #define COUNT(a) (sizeof(a) / sizeof(a[0]))
 
 extern uint32 xs, ys, cl, cs;
-extern bool8_32 Scale;
 
 extern void *dest_screen_buffer;
 
