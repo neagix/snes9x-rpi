@@ -555,8 +555,8 @@ static inline void RenderScreen (bool8 sub)
 	BG.NameSelect = 0;
 	S9xSelectTileRenderers(PPU.BGMode, sub, FALSE);
 
-	#define DO_BG(n, pal, depth, hires, offset, Zh, Zl, voffoff) \
-		if (BGActive & (1 << n)) \
+	#define DO_BG(n, pal, depth, hires, offset, Zh, Zl, voffoff)
+	/*	if (BGActive & (1 << n)) \
 		{ \
 			BG.StartPalette = pal; \
 			BG.EnableMath = !sub && (Memory.FillRAM[0x2131] & (1 << n)); \
@@ -581,7 +581,7 @@ static inline void RenderScreen (bool8 sub)
 				else \
 					DrawBackground(n, D + Zh, D + Zl); \
 			} \
-		}
+		}*/
 
 	switch (PPU.BGMode)
 	{
