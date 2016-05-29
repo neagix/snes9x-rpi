@@ -984,7 +984,7 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 #define NO_INTERLACE	1
 #define Z1				1
 #define Z2				1
-#define Pix				0
+#define Pix				13
 
 #define DRAW_TILE() \
 	register uint32	l, x; \
