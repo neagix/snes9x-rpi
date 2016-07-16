@@ -164,6 +164,10 @@ S9xOpenGLDisplayDriver::update (int width, int height)
     {
         final_buffer = (uint8 *) padded_buffer[0];
         final_pitch = image_width * image_bpp;
+
+        if (Settings.DumpStreams) {
+            S9xVideoLogger(final_buffer, image_width, SNES_HEIGHT_EXTENDED, image_bpp, final_pitch);
+        }
     }
 
     x = width; y = height;

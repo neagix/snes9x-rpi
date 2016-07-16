@@ -229,6 +229,11 @@ bool8 S9xGraphicsInit (void)
 	IPPU.OBJChanged = TRUE;
 	IPPU.DirectColourMapsNeedRebuild = TRUE;
 	Settings.BG_Forced = 0;
+	Settings.BG_Forced ^= 1;
+	Settings.BG_Forced ^= 2;
+	Settings.BG_Forced ^= 4;
+	Settings.BG_Forced ^= 8;
+
 	S9xFixColourBrightness();
 
 	GFX.X2   = (uint16 *) malloc(sizeof(uint16) * 0x10000);

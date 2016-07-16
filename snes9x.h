@@ -423,6 +423,7 @@ struct SSettings
 	bool8	WrongMovieStateProtection;
 	bool8	DumpStreams;
 	int		DumpStreamsMaxFrames;
+	int		AutoLoadState;
 
 	bool8	TakeScreenshot;
 	int8	StretchScreenshots;

@@ -334,13 +334,25 @@ void S9xLoadConfigFiles (char **argv, int argc)
 	static ConfigFile	conf; // static because some of its functions return pointers
 	conf.Clear();
 
+	Settings.AutoLoadState = -1;
+
 	bool	skip = false;
 	for (int i = 0; i < argc; i++)
 	{
 		if (!strcasecmp(argv[i], "-nostdconf"))
 		{
 			skip = true;
-			break;
+			continue;
+		}
+		if (!strcasecmp(argv[i], "-dumpstreams"))
+		{
+			Settings.DumpStreams = TRUE;
+			continue;
+		}
+		if (!strcasecmp(argv[i], "-autoloadstate"))
+		{
+			Settings.AutoLoadState = 0;
+			continue;
 		}
 	}
 
@@ -833,7 +845,7 @@ char * S9xParseArgs (char **argv, int argc)
 		#endif
 
 			// HACKING OR DEBUGGING OPTIONS
-		
+
 		#ifdef DEBUGGER
 			if (!strcasecmp(argv[i], "-debug"))
 				CPU.Flags |= DEBUG_MODE_FLAG;

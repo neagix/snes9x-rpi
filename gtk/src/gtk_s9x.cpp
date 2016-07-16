@@ -241,6 +241,17 @@ S9xROMLoaded (void)
 
     S9xSoundStart ();
 
+    if (Settings.AutoLoadState != -1) {
+        char	filename[PATH_MAX + 1];
+        char	drive[_MAX_DRIVE + 1], dir[_MAX_DIR + 1], def[_MAX_FNAME + 1], ext[_MAX_EXT + 1];
+
+        _splitpath(Memory.ROMFilename, drive, dir, def, ext);
+        snprintf(filename, PATH_MAX + 1, "%s%s%s.%03d", S9xGetDirectory(SNAPSHOT_DIR), SLASH_STR, def, Settings.AutoLoadState);
+
+        if (!S9xUnfreezeGame(filename))
+            S9xMessage(S9X_ERROR, S9X_FREEZE_FILE_NOT_FOUND, "Freeze file not found");
+    }
+
     return;
 }
 
